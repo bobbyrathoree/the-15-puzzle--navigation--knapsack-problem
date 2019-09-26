@@ -8,12 +8,13 @@
 #
 import sys
 
+
 def load_people(filename):
-    people={}
+    people = {}
     with open(filename, "r") as file:
         for line in file:
             l = line.split()
-            people[l[0]] = [ float(i) for i in l[1:] ] 
+            people[l[0]] = [float(i) for i in l[1:]]
     return people
 
 
@@ -24,29 +25,36 @@ def load_people(filename):
 #
 def approx_solve(people, budget):
 
-    solution=()
-    for (person, (skill, cost)) in sorted(people.items(), key=lambda x: x[1][0]/x[1][1]):
+    solution = ()
+    for (person, (skill, cost)) in sorted(
+        people.items(), key=lambda x: x[1][0] / x[1][1]
+    ):
         if budget - cost > 0:
-            solution += ( ( person, 1), )
+            solution += ((person, 1),)
             budget -= cost
         else:
-            return solution + ( ( person, budget/cost ), )
+            return solution + ((person, budget / cost),)
 
     return solution
 
 
 if __name__ == "__main__":
 
-    if(len(sys.argv) != 3):
-        raise Exception('Error: expected 2 command line arguments')
+    if len(sys.argv) != 3:
+        raise Exception("Error: expected 2 command line arguments")
 
     budget = float(sys.argv[2])
     people = load_people(sys.argv[1])
     solution = approx_solve(people, budget)
 
-    print("Found a group with %d people costing %f with total skill %f" % \
-               ( len(solution), sum(people[p][1]*f for p,f in solution), sum(people[p][0]*f for p,f in solution)))
+    print(
+        "Found a group with %d people costing %f with total skill %f"
+        % (
+            len(solution),
+            sum(people[p][1] * f for p, f in solution),
+            sum(people[p][0] * f for p, f in solution),
+        )
+    )
 
     for s in solution:
         print("%s %f" % s)
-
