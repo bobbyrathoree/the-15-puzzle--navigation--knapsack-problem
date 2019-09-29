@@ -50,11 +50,11 @@ def valid_index(row, col):
 
 def swap_ind(list, ind1, ind2):
     return (
-            list[0:ind1]
-            + (list[ind2],)
-            + list[ind1 + 1: ind2]
-            + (list[ind1],)
-            + list[ind2 + 1:]
+        list[0:ind1]
+        + (list[ind2],)
+        + list[ind1 + 1 : ind2]
+        + (list[ind1],)
+        + list[ind2 + 1 :]
     )
 
 
@@ -63,7 +63,7 @@ def swap_tiles(state, row1, col1, row2, col2):
 
 
 def printable_board(row):
-    return ["%3d %3d %3d %3d" % (row[j: (j + 4)]) for j in range(0, 16, 4)]
+    return ["%3d %3d %3d %3d" % (row[j : (j + 4)]) for j in range(0, 16, 4)]
 
 
 # return a list of possible successor states
@@ -126,7 +126,7 @@ def quantify_list_to_dict(board_blocks_list):
 
 
 def swap_location(
-        target: dict, new_location_of_zero: tuple, original_location_of_zero: tuple
+    target: dict, new_location_of_zero: tuple, original_location_of_zero: tuple
 ):
     # Move the zero
     target[0] = new_location_of_zero
@@ -216,22 +216,36 @@ class PuzzleBoard:
         # print(self.blocks, "blocks\n")
         for index in range(len(self.board_blocks)):
             # print("index is:", index)
-            # print("the goal tile is at position:", other.board_blocks[index], "and the current tile is at position:", self.board_blocks[index])
+            # print("the goal tile is at position:", other.board_blocks[index],
+            # "and the current tile is at position:", self.board_blocks[index])
             estimate += abs(
-                other.board_blocks[index][0] - self.board_blocks[index][0]  # the distances in column
-            ) + abs(other.board_blocks[index][1] - self.board_blocks[index][1])  # the distances in rows
+                other.board_blocks[index][0]
+                - self.board_blocks[index][0]  # the distances in column
+            ) + abs(
+                other.board_blocks[index][1] - self.board_blocks[index][1]
+            )  # the distances in rows
 
-            ### Linear-conflict heuristic: when two tiles are in their goal column or row, but are reverse to their goal position, add two moves to the Manhattan distance
-            if other.board_blocks[index][0] - self.board_blocks[index][
-                0] == 0:  ### if the index tile is in the goal column, check other tiles
+            #  Linear-conflict heuristic: when two tiles are in their goal column or row,
+            #  but are reverse to their goal position, add two moves to the Manhattan distance
+            if (
+                other.board_blocks[index][0] - self.board_blocks[index][0] == 0
+            ):  # if the index tile is in the goal column, check other tiles
                 for jndex in range(index, len(self.board_blocks)):
                     # print("jndex is:", jndex)
-                    if other.board_blocks[jndex][0] - self.board_blocks[jndex][0] == 0 and self.board_blocks[jndex][
-                        0] == self.board_blocks[index][
-                        0]:  ### if jndex is in the goal column and that's same with the index tile
-                        row_distance_between_goals = other.board_blocks[jndex][1] - other.board_blocks[index][1]
-                        row_distance_between_tiles = self.board_blocks[jndex][1] - self.board_blocks[index][1]
-                        if row_distance_between_goals * row_distance_between_tiles < 0:  ### if the index tiles and jndex tile are in reverse order relative to their goal position, add 2 to the heuristics
+                    if (
+                        other.board_blocks[jndex][0] - self.board_blocks[jndex][0] == 0
+                        and self.board_blocks[jndex][0] == self.board_blocks[index][0]
+                    ):  # if jndex is in the goal column and that's same with the index tile
+                        row_distance_between_goals = (
+                            other.board_blocks[jndex][1] - other.board_blocks[index][1]
+                        )
+                        row_distance_between_tiles = (
+                            self.board_blocks[jndex][1] - self.board_blocks[index][1]
+                        )
+                        if (
+                            row_distance_between_goals * row_distance_between_tiles < 0
+                        ):  # if the index tiles and jndex tile are in reverse order
+                            # relative to their goal position, add 2 to the heuristics
                             estimate += 2
 
         # for i in range(4):
@@ -282,15 +296,15 @@ class PuzzleBoard:
 
             # skip this state if we've moved off the board
             if (
-                    any(
-                        [
-                            new_location_of_zero[0] < 0,
-                            new_location_of_zero[1] < 0,
-                            new_location_of_zero[0] > self.width - 1,
-                            new_location_of_zero[1] > self.height - 1,
-                        ]
-                    )
-                    and not circular
+                any(
+                    [
+                        new_location_of_zero[0] < 0,
+                        new_location_of_zero[1] < 0,
+                        new_location_of_zero[0] > self.width - 1,
+                        new_location_of_zero[1] > self.height - 1,
+                    ]
+                )
+                and not circular
             ):
                 # print("We're moving outside the bounds of board.")
                 continue
@@ -394,8 +408,8 @@ def solve(initial_board, goal_board):
             origin[neighbor] = current
             sttn_score[neighbor] = tentative_g_score
             stgptn_score[neighbor] = sttn_score[
-                                         neighbor
-                                     ] + neighbor.calculate_manhattan_distance(goal_board)
+                neighbor
+            ] + neighbor.calculate_manhattan_distance(goal_board)
 
     return False
 

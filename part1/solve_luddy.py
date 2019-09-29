@@ -7,7 +7,6 @@
 #
 import math
 import heapq
-import collections
 import copy
 import sys
 import collections
@@ -18,95 +17,6 @@ MOVES = {"R": (0, -1), "L": (0, 1), "D": (-1, 0), "U": (1, 0)}
 # by passing by that node. That value is partly known, partly heuristic.
 # stgptn: start to goal passing that node
 stgptn_score = collections.defaultdict(lambda: float("inf"))
-
-
-# def calculate_manhattan_distance(puzz):
-#     distance = 0
-#     m = eval(puzz)
-#     # print(m, puzz, type(m), type(puzz))
-#     for i in range(4):
-#         for j in range(4):
-#             if m[i][j] == 0:
-#                 continue
-#             distance += abs(i - (m[i][j] / 4)) + abs(j - (m[i][j] % 4))
-#     # print("distance: ", distance, "\n\n")
-#     return distance
-
-
-def rowcol2ind(row, col):
-    return row * 4 + col
-
-
-def ind2rowcol(ind):
-    return int(ind / 4), ind % 4
-
-
-def valid_index(row, col):
-    return 0 <= row <= 3 and 0 <= col <= 3
-
-
-def swap_ind(list, ind1, ind2):
-    return (
-        list[0:ind1]
-        + (list[ind2],)
-        + list[ind1 + 1 : ind2]
-        + (list[ind1],)
-        + list[ind2 + 1 :]
-    )
-
-
-def swap_tiles(state, row1, col1, row2, col2):
-    return swap_ind(state, *(sorted((rowcol2ind(row1, col1), rowcol2ind(row2, col2)))))
-
-
-def printable_board(row):
-    return ["%3d %3d %3d %3d" % (row[j : (j + 4)]) for j in range(0, 16, 4)]
-
-
-# return a list of possible successor states
-# def successors(state):
-#     print(type(state), state)
-#     (empty_row, empty_col) = ind2rowcol(state.index(0))
-#     return [
-#         (swap_tiles(state, empty_row, empty_col, empty_row + i, empty_col + j), c)
-#         for (c, (i, j)) in MOVES.items()
-#         if valid_index(empty_row + i, empty_col + j)
-#     ]
-
-
-# check if we've reached the goal
-# def is_goal(state):
-#     return sorted(state[:-1]) == list(state[:-1]) and state[-1] == 0
-
-
-# def heuristic_estimate_manhattan(m):
-#     distance = 0
-#
-#     for i in range(4):
-#         for j in range(4):
-#             if m[i][j] == 0:
-#                 continue
-#             distance += abs(i - (m[i][j] / 4)) + abs(j - (m[i][j] % 4))
-#
-#     return distance
-
-
-# The solver! - using BFS right now
-# def solve_bfs(initial_board):
-#     fringe = [(initial_board, "")]
-#     expanded_nodes_list = set()
-#     expanded_nodes_ctr = 0
-#     while len(fringe) > 0:
-#         (state, route_so_far) = fringe.pop()
-#         for (succ, move) in successors(state):
-#             if is_goal(succ):
-#                 return route_so_far + move
-#             if str(succ) in expanded_nodes_list:
-#                 continue
-#             expanded_nodes_list.add(str(succ))
-#             fringe.insert(0, (succ, route_so_far + move))
-#         expanded_nodes_ctr += 1
-#     return False
 
 
 def quantify_list_to_dict(board_blocks_list):
@@ -214,12 +124,6 @@ class PuzzleBoard:
             estimate += abs(
                 other.board_blocks[index][0] - self.board_blocks[index][0]
             ) + abs(other.board_blocks[index][1] - self.board_blocks[index][1])
-
-        # for i in range(4):
-        #     for j in range(4):
-        #         if m[i][j] == 0:
-        #             continue
-        #         estimate += abs(i - (m[i][j] / 4)) + abs(j - (m[i][j] % 4))
 
         return estimate
 
