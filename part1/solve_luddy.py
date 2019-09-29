@@ -127,10 +127,23 @@ class PuzzleBoard:
 
         return estimate
 
-    def get_successors(self, former, circular=False):
+    def get_successors(self, former, circular=False, luddy=False):
         successors = list()
+        moves = (
+            {
+                "A": (-2, -1),
+                "B": (-2, 1),
+                "C": (2, -1),
+                "D": (2, 1),
+                "E": (-1, -2),
+                "F": (-1, 2),
+                "G": (1, -2),
+                "H": (1, 2),
+            }
+            if luddy
+            else {"R": (0, -1), "L": (0, 1), "D": (-1, 0), "U": (1, 0)}
+        )
 
-        moves = {"R": (0, -1), "L": (0, 1), "D": (-1, 0), "U": (1, 0)}
         location_of_zero = self.board_blocks[0]
 
         for direction, move in moves.items():
@@ -198,7 +211,7 @@ class PuzzleBoard:
         return successors
 
 
-def solve(initial_board, goal_board, circular=False):
+def solve(initial_board, goal_board, circular=False, luddy=False):
 
     # The dictionary of states already evaluated
     evaluated_states = dict()
@@ -247,8 +260,9 @@ def solve(initial_board, goal_board, circular=False):
         evaluated_states[current] = True
 
         # For each possible neighbor of our current state,
-        for neighbor in current.get_successors(origin.get(current), circular=circular):
-
+        for neighbor in current.get_successors(
+            origin.get(current), circular=circular, luddy=luddy
+        ):
             # Skip it if it's already been evaluated
             if neighbor in evaluated_states:
                 continue
@@ -272,19 +286,38 @@ def solve(initial_board, goal_board, circular=False):
     return False
 
 
-def calculate_move(old_coordinate: tuple, new_coordinate: tuple):
+def calculate_move(old_coordinate: tuple, new_coordinate: tuple, luddy=False):
     import numpy
 
-    directions_map = {
-        "L": [(-1, 0), (3, 0)],
-        "R": [(1, 0), (-3, 0)],
-        "U": [(0, -1), (0, 3)],
-        "D": [(0, 1), (0, -3)],
-    }
+    directions_map = (
+        {
+            "A": [(2, 1)],
+            "B": [(2, -1)],
+            "C": [(-2, 1)],
+            "D": [(-2, -1)],
+            "E": [(1, 2)],
+            "F": [(1, -2)],
+            "G": [(-1, 2)],
+            "H": [(-1, -2)],
+        }
+        if luddy
+        else {
+            "L": [(-1, 0), (3, 0)],
+            "R": [(1, 0), (-3, 0)],
+            "U": [(0, -1), (0, 3)],
+            "D": [(0, 1), (0, -3)],
+        }
+    )
     return [
         direction
         for direction, coordinate in directions_map.items()
-        if tuple(numpy.subtract(old_coordinate, new_coordinate)) in coordinate
+        if tuple(
+            numpy.subtract(
+                tuple(reversed(old_coordinate)) if luddy else old_coordinate,
+                tuple(reversed(new_coordinate)) if luddy else new_coordinate,
+            )
+        )
+        in coordinate
     ][0]
 
 
@@ -293,15 +326,10 @@ if __name__ == "__main__":
     # if len(sys.argv) != 3:
     #     raise (Exception("Error: expected 2 arguments"))
     #
-    # start_state = []
-    # with open(sys.argv[1], "r") as file:
-    #     for line in file:
-    #         start_state += [int(i) for i in line.split()]
-    #
-    # if sys.argv[2] != "original":
+    # if sys.argv[2] not in ["original", "circular", "luddy"]:
     #     raise (
     #         Exception(
-    #             "Error: only 'original' puzzle currently supported -- you need to implement the other two!"
+    #             "Error: only 'original', 'circular', and 'luddy' allowed"
     #         )
     #     )
     #
@@ -311,13 +339,17 @@ if __name__ == "__main__":
     # print("Start state: \n" + "\n".join(printable_board(tuple(start_state))))
 
     print("Solving...")
-
+    # with open("board4", "r") as f:
+    #     print([[char for char in line if ] for line in f.read().split("\n")])
     # start = PuzzleBoard(
     #     [[1, 2, 3, 4], [5, 0, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]]
     # )  # board 4
+    # start = PuzzleBoard(
+    #     [[0, 2, 3, 4], [1, 5, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]]
+    # )  # board 6
     start = PuzzleBoard(
-        [[0, 2, 3, 4], [1, 5, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]]
-    )  # board 6
+        [[1, 2, 3, 4], [5, 6, 14, 8], [9, 10, 11, 12], [13, 0, 15, 7]]
+    )  # To test chess-horse
     # start = PuzzleBoard(
     #     [[15, 2, 1, 12], [8, 5, 6, 11], [4, 9, 10, 7], [3, 14, 13, 0]]
     # )  # board n
@@ -328,7 +360,7 @@ if __name__ == "__main__":
     #     [[0, 2, 3, 1], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 4]]
     # )  # To test circular 2
     goal = PuzzleBoard([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 0]])
-    states = solve(start, goal, circular=False)
+    states = solve(start, goal, circular=False, luddy=False)
     initial_position_of_zero = states[0].board_blocks[0]
     actual_path = list()
     print(
