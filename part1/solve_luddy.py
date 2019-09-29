@@ -20,7 +20,6 @@ MOVES = {"R": (0, -1), "L": (0, 1), "D": (-1, 0), "U": (1, 0)}
 stgptn_score = collections.defaultdict(lambda: float("inf"))
 
 
-
 # def calculate_manhattan_distance(puzz):
 #     distance = 0
 #     m = eval(puzz)
@@ -65,14 +64,14 @@ def printable_board(row):
 
 
 # return a list of possible successor states
-def successors(state):
-    print(type(state), state)
-    (empty_row, empty_col) = ind2rowcol(state.index(0))
-    return [
-        (swap_tiles(state, empty_row, empty_col, empty_row + i, empty_col + j), c)
-        for (c, (i, j)) in MOVES.items()
-        if valid_index(empty_row + i, empty_col + j)
-    ]
+# def successors(state):
+#     print(type(state), state)
+#     (empty_row, empty_col) = ind2rowcol(state.index(0))
+#     return [
+#         (swap_tiles(state, empty_row, empty_col, empty_row + i, empty_col + j), c)
+#         for (c, (i, j)) in MOVES.items()
+#         if valid_index(empty_row + i, empty_col + j)
+#     ]
 
 
 # check if we've reached the goal
@@ -93,21 +92,21 @@ def successors(state):
 
 
 # The solver! - using BFS right now
-def solve_bfs(initial_board):
-    fringe = [(initial_board, "")]
-    expanded_nodes_list = set()
-    expanded_nodes_ctr = 0
-    while len(fringe) > 0:
-        (state, route_so_far) = fringe.pop()
-        for (succ, move) in successors(state):
-            if is_goal(succ):
-                return route_so_far + move
-            if str(succ) in expanded_nodes_list:
-                continue
-            expanded_nodes_list.add(str(succ))
-            fringe.insert(0, (succ, route_so_far + move))
-        expanded_nodes_ctr += 1
-    return False
+# def solve_bfs(initial_board):
+#     fringe = [(initial_board, "")]
+#     expanded_nodes_list = set()
+#     expanded_nodes_ctr = 0
+#     while len(fringe) > 0:
+#         (state, route_so_far) = fringe.pop()
+#         for (succ, move) in successors(state):
+#             if is_goal(succ):
+#                 return route_so_far + move
+#             if str(succ) in expanded_nodes_list:
+#                 continue
+#             expanded_nodes_list.add(str(succ))
+#             fringe.insert(0, (succ, route_so_far + move))
+#         expanded_nodes_ctr += 1
+#     return False
 
 
 def quantify_list_to_dict(board_blocks_list):
@@ -235,7 +234,6 @@ class PuzzleBoard:
 
         circular = False
 
-        # moves = ((-1, 0), (1, 0), (0, -1), (0, 1))
         moves = {"R": (0, -1), "L": (0, 1), "D": (-1, 0), "U": (1, 0)}
         location_of_zero = self.board_blocks[0]
 
@@ -267,36 +265,24 @@ class PuzzleBoard:
                         new_location_of_zero[0] + self.height - 1,
                         new_location_of_zero[1],
                     )
-                    new_board_blocks[0] = circular_caused_location_of_zero
-                    new_board_blocks[
-                        [
-                            number
-                            for number, location in new_board_blocks.items()
-                            if number != 0 and location == new_location_of_zero
-                        ][0]
-                    ] = location_of_zero
+                    swap_location(
+                        target=new_board_blocks,
+                        new_location_of_zero=circular_caused_location_of_zero,
+                        original_location_of_zero=location_of_zero,
+                    )
 
             # skip this state if it's the same as the previous
             if former and former.board_blocks[0] == new_location_of_zero:
                 # print("this is just the same!")
                 continue
 
-            # move the 0
-            new_board_blocks[0] = new_location_of_zero
+            swap_location(
+                target=new_board_blocks,
+                new_location_of_zero=new_location_of_zero,
+                original_location_of_zero=location_of_zero,
+            )
 
-            # move whatever's in that location...
-            # to the previous one
-            new_board_blocks[
-                [
-                    number
-                    for number, location in new_board_blocks.items()
-                    if number != 0 and location == new_location_of_zero
-                ][0]
-            ] = location_of_zero
-            # for number, location in new_board_blocks.items():
-            #     if number != 0 and location == new_location_of_zero:
-            #         new_board_blocks[number] = location_of_zero
-            print(new_board_blocks, "new board blocks\n")
+            # print(new_board_blocks, "new board blocks\n")
             neighbor = PuzzleBoard(
                 new_board_blocks,
                 former.path_taken_until_now + direction if former else direction,
@@ -418,4 +404,3 @@ if __name__ == "__main__":
     # route = solve(tuple(start_state))
 
     # print("Solution found in " + str(len(route)) + " moves:" + "\n" + route)
-
