@@ -139,7 +139,7 @@ def swap_location(
 
 
 class PuzzleBoard:
-    def __init__(self, board_blocks, path_taken_until_now):
+    def __init__(self, board_blocks):
         """
         Constructor. Takes a dictionary of integer-tuple pairs that describe block positions.
         Alternatively, takes a 2D list array that is then converted to dict.
@@ -150,7 +150,6 @@ class PuzzleBoard:
             self.board_blocks = board_blocks
         self.width = self.__get_width__()
         self.height = int(len(self.board_blocks) / self.width)
-        self.path_taken_until_now = path_taken_until_now
 
     def __eq__(self, other):
         """
@@ -224,9 +223,8 @@ class PuzzleBoard:
 
         return estimate
 
-    def get_successors(self, former):
+    def get_successors(self, former, circular=False):
         successors = list()
-        circular = False  # make this True to check circular for now
 
         moves = {"R": (0, -1), "L": (0, 1), "D": (-1, 0), "U": (1, 0)}
         location_of_zero = self.board_blocks[0]
@@ -289,17 +287,14 @@ class PuzzleBoard:
                 original_location_of_zero=location_of_zero,
             )
 
-            # print(new_board_blocks, "new board blocks\n")
-            neighbor = PuzzleBoard(
-                new_board_blocks,
-                former.path_taken_until_now + direction if former else direction,
-            )
+            neighbor = PuzzleBoard(new_board_blocks)
+
             successors.append(neighbor)
         # print(len(successors), "len")
         return successors
 
 
-def solve(initial_board, goal_board):
+def solve(initial_board, goal_board, circular=False):
 
     # The dictionary of states already evaluated
     evaluated_states = dict()
@@ -328,30 +323,27 @@ def solve(initial_board, goal_board):
     # While there are yet nodes to inspect,
     while len(fringe) > 0:
 
-        # Pop the lowest f-score state off.
+        # Pop the lowest stgptn-score state off.
         current = heapq.heappop(fringe)
 
         # If we've reached the goal:
         if current == goal_board:
             # return the list of states it took to get there.
-            path = [current]
+            state_path = [current]
             step = current
-            actual_path = list()
-            # print(step.to_string(), "step")
+
             while origin.get(step):
-                actual_path.append(step.path_taken_until_now)
-                path.append(origin[step])
+                state_path.append(origin[step])
                 step = origin[step]
-            path.reverse()
-            actual_path.reverse()
-            print(actual_path, "actual path")
-            return path
+
+            state_path.reverse()
+            return state_path
 
         # make sure we won't visit this state again.
         evaluated_states[current] = True
 
         # For each possible neighbor of our current state,
-        for neighbor in current.get_successors(origin.get(current)):
+        for neighbor in current.get_successors(origin.get(current), circular=circular):
 
             # Skip it if it's already been evaluated
             if neighbor in evaluated_states:
@@ -360,20 +352,36 @@ def solve(initial_board, goal_board):
             # Add it to our open heap
             heapq.heappush(fringe, neighbor)
 
-            tentative_g_score = sttn_score[current] + 1
+            tentative_sttn_score = sttn_score[current] + 1
 
             # If it takes more to get here than another path to this state, skip it.
-            if tentative_g_score >= sttn_score[neighbor]:
+            if tentative_sttn_score >= sttn_score[neighbor]:
                 continue
 
             # If we got to this point, add it!
             origin[neighbor] = current
-            sttn_score[neighbor] = tentative_g_score
+            sttn_score[neighbor] = tentative_sttn_score
             stgptn_score[neighbor] = sttn_score[
                 neighbor
             ] + neighbor.calculate_manhattan_distance(goal_board)
 
     return False
+
+
+def calculate_move(old_coordinate: tuple, new_coordinate: tuple):
+    import numpy
+
+    directions_map = {
+        "L": [(-1, 0), (3, 0)],
+        "R": [(1, 0), (-3, 0)],
+        "U": [(0, -1), (0, 3)],
+        "D": [(0, 1), (0, -3)],
+    }
+    return [
+        direction
+        for direction, coordinate in directions_map.items()
+        if tuple(numpy.subtract(old_coordinate, new_coordinate)) in coordinate
+    ][0]
 
 
 # test cases
@@ -400,26 +408,38 @@ if __name__ == "__main__":
 
     print("Solving...")
 
+    # start = PuzzleBoard(
+    #     [[1, 2, 3, 4], [5, 0, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]]
+    # )  # board 4
     start = PuzzleBoard(
-        [[1, 2, 3, 4], [5, 0, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]], ""
-    )  # board 4
+        [[0, 2, 3, 4], [1, 5, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]]
+    )  # board 6
     # start = PuzzleBoard(
-    #     [[0, 2, 3, 4], [1, 5, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]], ""
-    # )  # board 6
-    # start = PuzzleBoard(
-    #     [[15, 2, 1, 12], [8, 5, 6, 11], [4, 9, 10, 7], [3, 14, 13, 0]], ""
+    #     [[15, 2, 1, 12], [8, 5, 6, 11], [4, 9, 10, 7], [3, 14, 13, 0]]
     # )  # board n
     # start = PuzzleBoard(
-    #     [[1, 2, 3, 0], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 4]], ""
-    # )  # To test circular
-    goal = PuzzleBoard(
-        [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 0]], ""
+    #     [[1, 2, 3, 0], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 4]]
+    # )  # To test circular 1
+    # start = PuzzleBoard(
+    #     [[0, 2, 3, 1], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 4]]
+    # )  # To test circular 2
+    goal = PuzzleBoard([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 0]])
+    states = solve(start, goal, circular=False)
+    initial_position_of_zero = states[0].board_blocks[0]
+    actual_path = list()
+    print(
+        "Original Board: \n{0}\n{1}".format(
+            states[0].to_string(), "\t |\n\t |\n\t |\n\t\\./"
+        )
     )
-    path = solve(start, goal)
-    for state in path:
+    for state in states[1:]:
         print(state.to_string())
-        print()
-
-    # route = solve(tuple(start_state))
-
-    # print("Solution found in " + str(len(route)) + " moves:" + "\n" + route)
+        actual_path.append(
+            calculate_move(
+                old_coordinate=initial_position_of_zero,
+                new_coordinate=state.board_blocks[0],
+            )
+        )
+        initial_position_of_zero = state.board_blocks[0]
+        print("\t |\n\t |\n\t |\n\t\\./")
+    print("Path taken: \n{0}".format("".join(actual_path)))
