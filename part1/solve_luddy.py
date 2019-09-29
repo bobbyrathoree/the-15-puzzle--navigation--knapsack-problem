@@ -125,7 +125,7 @@ def quantify_list_to_dict(board_blocks_list):
 def swap_location(
     target: dict, new_location_of_zero: tuple, original_location_of_zero: tuple
 ):
-    # Move teh zero
+    # Move the zero
     target[0] = new_location_of_zero
 
     # Move the other element that was replaced back to zero's original position
@@ -142,7 +142,7 @@ class PuzzleBoard:
     def __init__(self, board_blocks, path_taken_until_now):
         """
         Constructor. Takes a dictionary of integer-tuple pairs that describe block positions.
-        Alternatively, takes a 2D list array that is then converted.
+        Alternatively, takes a 2D list array that is then converted to dict.
         """
         if isinstance(board_blocks, list):
             self.board_blocks = quantify_list_to_dict(board_blocks)
@@ -178,11 +178,11 @@ class PuzzleBoard:
         """
         Returns the width of this puzzle.
         """
-        maxWidth = 0
+        max_width = 0
         for value in self.board_blocks.values():
-            maxWidth = max(value[0], maxWidth)
+            max_width = max(value[0], max_width)
 
-        return maxWidth + 1
+        return max_width + 1
 
     def to_string(self):
         """
@@ -225,13 +225,7 @@ class PuzzleBoard:
         return estimate
 
     def get_successors(self, former):
-        """
-        Gets all adjacent successors of the state, minus the previous.
-        This function gives 7 successors: 4 orthogonal, 4 diagonal, with the previous state trimmed.
-        """
-        # print(former.to_string() + "former haha" if former else "Nopee")
         successors = list()
-
         circular = False
 
         moves = {"R": (0, -1), "L": (0, 1), "D": (-1, 0), "U": (1, 0)}
@@ -245,6 +239,29 @@ class PuzzleBoard:
                 location_of_zero[1] + move[1],
             )
 
+            if circular:
+                # We're allowing circular
+                if new_location_of_zero[0] < 0:  # on the first row
+                    new_location_of_zero = (
+                        new_location_of_zero[0] + self.height,
+                        new_location_of_zero[1],
+                    )
+                elif new_location_of_zero[1] < 0:
+                    new_location_of_zero = (
+                        new_location_of_zero[0],
+                        new_location_of_zero[1] + self.width,
+                    )
+                elif new_location_of_zero[0] > (self.width - 1):
+                    new_location_of_zero = (
+                        new_location_of_zero[0] - self.height,
+                        new_location_of_zero[1],
+                    )
+                elif new_location_of_zero[1] > (self.height - 1):
+                    new_location_of_zero = (
+                        new_location_of_zero[0],
+                        new_location_of_zero[1] - self.width,
+                    )
+
             # skip this state if we've moved off the board
             if (
                 any(
@@ -254,28 +271,17 @@ class PuzzleBoard:
                         new_location_of_zero[0] > self.width - 1,
                         new_location_of_zero[1] > self.height - 1,
                     ]
-                )
-                and not circular
+                ) and not circular
             ):
                 # print("We're moving outside the bounds of board.")
                 continue
-            else:
-                if new_location_of_zero[0] < 0:  # on the first row
-                    circular_caused_location_of_zero = (
-                        new_location_of_zero[0] + self.height - 1,
-                        new_location_of_zero[1],
-                    )
-                    swap_location(
-                        target=new_board_blocks,
-                        new_location_of_zero=circular_caused_location_of_zero,
-                        original_location_of_zero=location_of_zero,
-                    )
 
             # skip this state if it's the same as the previous
             if former and former.board_blocks[0] == new_location_of_zero:
                 # print("this is just the same!")
                 continue
 
+            # if not circular:
             swap_location(
                 target=new_board_blocks,
                 new_location_of_zero=new_location_of_zero,
@@ -288,7 +294,7 @@ class PuzzleBoard:
                 former.path_taken_until_now + direction if former else direction,
             )
             successors.append(neighbor)
-        print(len(successors), "len")
+        # print(len(successors), "len")
         return successors
 
 
