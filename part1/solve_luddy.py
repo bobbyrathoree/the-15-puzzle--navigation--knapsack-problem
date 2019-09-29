@@ -111,10 +111,6 @@ class PuzzleBoard:
         return string
 
     def calculate_manhattan_distance(self, other):
-        """
-        Finds the heuristic estimation of the cost to reach another state from this one.
-        This heuristic is based on "manhattan distance."
-        """
         estimate = 0
         # print(self.blocks, "blocks\n")
         for index in range(len(self.board_blocks)):
@@ -204,7 +200,6 @@ class PuzzleBoard:
             neighbor = PuzzleBoard(new_board_blocks)
 
             successors.append(neighbor)
-        # print(len(successors), "len")
         return successors
 
 
@@ -219,9 +214,8 @@ def solve(initial_board, goal_board, circular=False, luddy=False):
     origin = dict()
 
     # For each node, the cost of getting from the start node to that node.
-    sttn_score = collections.defaultdict(
-        lambda: float("inf")
-    )  # sttn: start to that node
+    # sttn: start to that node
+    sttn_score = collections.defaultdict(lambda: float("inf"))
 
     # The cost of going from start to start is zero.
     sttn_score[initial_board] = 0
@@ -324,11 +318,7 @@ if __name__ == "__main__":
         raise (Exception("Error: expected 2 arguments"))
 
     if sys.argv[2] not in ["original", "circular", "luddy"]:
-        raise (
-            Exception(
-                "Error: only 'original', 'circular', and 'luddy' allowed"
-            )
-        )
+        raise (Exception("Error: only 'original', 'circular', and 'luddy' allowed"))
     # start_state = list()
     # with open(sys.argv[1], "r") as file:
     #     for line in file:
@@ -362,11 +352,7 @@ if __name__ == "__main__":
     initial_position_of_zero = states[0].board_blocks[0]
     actual_path = list()
 
-    print(
-        "Original Board: \n{0}".format(
-            states[0].to_string()
-        )
-    )
+    print("Original Board: \n{0}".format(states[0].to_string()))
     for state in states[1:]:
         print("\t |\n\t |\n\t |\n\t\\./")
         print(state.to_string())
