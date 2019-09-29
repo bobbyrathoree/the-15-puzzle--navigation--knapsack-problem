@@ -5,13 +5,10 @@
 #
 # Based on skeleton code by D. Crandall, September 2019
 #
-import math
 import heapq
 import copy
 import sys
 import collections
-
-MOVES = {"R": (0, -1), "L": (0, 1), "D": (-1, 0), "U": (1, 0)}
 
 # For each node, the total cost of getting from the start node to the goal
 # by passing by that node. That value is partly known, partly heuristic.
@@ -323,24 +320,21 @@ def calculate_move(old_coordinate: tuple, new_coordinate: tuple, luddy=False):
 
 # test cases
 if __name__ == "__main__":
-    # if len(sys.argv) != 3:
-    #     raise (Exception("Error: expected 2 arguments"))
-    #
-    # if sys.argv[2] not in ["original", "circular", "luddy"]:
-    #     raise (
-    #         Exception(
-    #             "Error: only 'original', 'circular', and 'luddy' allowed"
-    #         )
-    #     )
-    #
-    # if len(start_state) != 16:
-    #     raise (Exception("Error: couldn't parse start state file"))
-    #
-    # print("Start state: \n" + "\n".join(printable_board(tuple(start_state))))
+    if len(sys.argv) != 3:
+        raise (Exception("Error: expected 2 arguments"))
 
-    print("Solving...")
-    # with open("board4", "r") as f:
-    #     print([[char for char in line if ] for line in f.read().split("\n")])
+    if sys.argv[2] not in ["original", "circular", "luddy"]:
+        raise (
+            Exception(
+                "Error: only 'original', 'circular', and 'luddy' allowed"
+            )
+        )
+    # start_state = list()
+    # with open(sys.argv[1], "r") as file:
+    #     for line in file:
+    #         start_state += [[int(i) for i in line.split()]]
+    #
+    # start = PuzzleBoard(start_state)
     # start = PuzzleBoard(
     #     [[1, 2, 3, 4], [5, 0, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]]
     # )  # board 4
@@ -360,15 +354,21 @@ if __name__ == "__main__":
     #     [[0, 2, 3, 1], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 4]]
     # )  # To test circular 2
     goal = PuzzleBoard([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 0]])
+
+    print("Solving...")
+
     states = solve(start, goal, circular=False, luddy=False)
+
     initial_position_of_zero = states[0].board_blocks[0]
     actual_path = list()
+
     print(
-        "Original Board: \n{0}\n{1}".format(
-            states[0].to_string(), "\t |\n\t |\n\t |\n\t\\./"
+        "Original Board: \n{0}".format(
+            states[0].to_string()
         )
     )
     for state in states[1:]:
+        print("\t |\n\t |\n\t |\n\t\\./")
         print(state.to_string())
         actual_path.append(
             calculate_move(
@@ -377,5 +377,5 @@ if __name__ == "__main__":
             )
         )
         initial_position_of_zero = state.board_blocks[0]
-        print("\t |\n\t |\n\t |\n\t\\./")
-    print("Path taken: \n{0}".format("".join(actual_path)))
+
+    print("\nPath taken: \n{0}".format("".join(actual_path)))
