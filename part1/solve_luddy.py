@@ -226,7 +226,7 @@ class PuzzleBoard:
 
     def get_successors(self, former):
         successors = list()
-        circular = False
+        circular = False  # make this True to check circular for now
 
         moves = {"R": (0, -1), "L": (0, 1), "D": (-1, 0), "U": (1, 0)}
         location_of_zero = self.board_blocks[0]
@@ -271,7 +271,8 @@ class PuzzleBoard:
                         new_location_of_zero[0] > self.width - 1,
                         new_location_of_zero[1] > self.height - 1,
                     ]
-                ) and not circular
+                )
+                and not circular
             ):
                 # print("We're moving outside the bounds of board.")
                 continue
@@ -312,7 +313,6 @@ def solve(initial_board, goal_board):
     sttn_score = collections.defaultdict(
         lambda: float("inf")
     )  # sttn: start to that node
-    # f_score = collections.defaultdict(lambda: float("inf"))
 
     # The cost of going from start to start is zero.
     sttn_score[initial_board] = 0
@@ -333,14 +333,18 @@ def solve(initial_board, goal_board):
 
         # If we've reached the goal:
         if current == goal_board:
-            print(current.path_taken_until_now)
             # return the list of states it took to get there.
             path = [current]
             step = current
+            actual_path = list()
+            # print(step.to_string(), "step")
             while origin.get(step):
+                actual_path.append(step.path_taken_until_now)
                 path.append(origin[step])
                 step = origin[step]
             path.reverse()
+            actual_path.reverse()
+            print(actual_path, "actual path")
             return path
 
         # make sure we won't visit this state again.
@@ -398,7 +402,16 @@ if __name__ == "__main__":
 
     start = PuzzleBoard(
         [[1, 2, 3, 4], [5, 0, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]], ""
-    )
+    )  # board 4
+    # start = PuzzleBoard(
+    #     [[0, 2, 3, 4], [1, 5, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]], ""
+    # )  # board 6
+    # start = PuzzleBoard(
+    #     [[15, 2, 1, 12], [8, 5, 6, 11], [4, 9, 10, 7], [3, 14, 13, 0]], ""
+    # )  # board n
+    # start = PuzzleBoard(
+    #     [[1, 2, 3, 0], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 4]], ""
+    # )  # To test circular
     goal = PuzzleBoard(
         [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 0]], ""
     )
