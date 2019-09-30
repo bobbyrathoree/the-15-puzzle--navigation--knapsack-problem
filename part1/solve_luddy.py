@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 # solve_luddy.py : Sliding tile puzzle solver
 #
-# Code by: Bobby Rathore (brathore), James, Dan Li
+# Code by: Bobby Rathore (brathore), James Mochizuki-Freeman (jmochizu), Dan Li (dli1)
 #
 # Based on skeleton code by D. Crandall, September 2019
 #
@@ -16,15 +16,17 @@ import collections
 stgptn_score = collections.defaultdict(lambda: float("inf"))
 
 
-def quantify_list_to_dict(board_blocks_list):
+def quantify_list_to_dict(board_blocks_list: list) -> dict:
     """
     Converts a 2D list of integers into a dictionary.
+    :param board_blocks_list: A 2D list
+    :return: Converted dictionary with coordinates of numbers
     """
     dictionary = dict()
 
     for row in range(len(board_blocks_list)):
         for col in range(len(board_blocks_list[0])):
-            dictionary[board_blocks_list[row][col]] = (col, row)
+            dictionary[board_blocks_list[row][col]] = (row, col)
 
     return dictionary
 
@@ -32,6 +34,12 @@ def quantify_list_to_dict(board_blocks_list):
 def swap_location(
     target: dict, new_location_of_zero: tuple, original_location_of_zero: tuple
 ):
+    """
+    A function to swap the location of zero and some other number
+    :param target: the PuzzleBoard instance dictionary
+    :param new_location_of_zero: coordinates of the intended location of zero
+    :param original_location_of_zero: coordinates of the current location of zero
+    """
     # Move the zero
     target[0] = new_location_of_zero
 
@@ -50,6 +58,7 @@ class PuzzleBoard:
         """
         Constructor. Takes a dictionary of integer-tuple pairs that describe block positions.
         Alternatively, takes a 2D list array that is then converted to dict.
+        :param board_blocks: can be either a list of a dict of a PuzzleBoard instance
         """
         if isinstance(board_blocks, list):
             self.board_blocks = quantify_list_to_dict(board_blocks)
@@ -58,31 +67,39 @@ class PuzzleBoard:
         self.width = self.__get_width__()
         self.height = int(len(self.board_blocks) / self.width)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """
         Equals function. Returns whether block dictionaries are equal.
+        :param other: origin object
+        :return: a bool indicating whether a PuzzleBoard instance
+                 is the same as its origin
         """
-        if other == None:
+        if not other:
             return False
         return self.board_blocks == other.board_blocks
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
         """
-        Less-than function. Compares f-scores.
+        Less-than function. Compares stgptn-scores.
+        :param other: origin object
+        :return: a bool indicating whether new object's
+                 stgptn-score is lower than its origin's
         """
-        if other == None:
+        if not other:
             return False
         return stgptn_score[self] < stgptn_score[other]
 
     def __hash__(self):
         """
         Hash function. Hashes a frozenset of the blocks.
+        :return: frozenset of PuzzleBoard instance
         """
         return hash(frozenset(self.board_blocks.items()))
 
     def __get_width__(self):
         """
         Returns the width of this puzzle.
+        :return: width of PuzzleBoard instance
         """
         max_width = 0
         for value in self.board_blocks.values():
@@ -93,12 +110,13 @@ class PuzzleBoard:
     def to_string(self):
         """
         Returns the state in an easy-to-read fashion.
+        :return: stringified PuzzleBoard instance
         """
         array = []
-        for y in range(self.height):
+        for x in range(self.height):
             # print("y:",y)
             row = []
-            for x in range(self.width):
+            for y in range(self.width):
                 # print("x:",x)
                 for block in self.board_blocks.items():
                     # print(block)
@@ -110,9 +128,14 @@ class PuzzleBoard:
         string = "\n".join("\t".join("%i" % x for x in y) for y in array)
         return string
 
-    def calculate_manhattan_distance(self, other):
+    def calculate_manhattan_distance(self, other: object) -> int:
+        """
+        Our go-to heuristic: manhattan distance
+        :param other: the puzzle board instance to calculate manhattan distance from
+        :return: the estimated distance
+        """
         estimate = 0
-        # print(self.blocks, "blocks\n")
+
         for index in range(len(self.board_blocks)):
             estimate += abs(
                 other.board_blocks[index][0] - self.board_blocks[index][0]
@@ -120,7 +143,17 @@ class PuzzleBoard:
 
         return estimate
 
-    def get_successors(self, former, circular=False, luddy=False):
+    def get_successors(
+        self, former: object, circular: bool = False, luddy: bool = False
+    ) -> list:
+        """
+        Function to get all successors of a puzzle board instance,
+        depending on the configuration: cirular or luddy (original is ON by default)
+        :param former: state from which current puzzle board instance comes from
+        :param circular: flag whether circular configuration requested or not
+        :param luddy: flag whether luddy configuration requested or not
+        :return: list of possible successors
+        """
         successors = list()
         moves = (
             {
@@ -198,13 +231,25 @@ class PuzzleBoard:
             )
 
             neighbor = PuzzleBoard(new_board_blocks)
-
             successors.append(neighbor)
+
         return successors
 
 
-def solve(initial_board, goal_board, circular=False, luddy=False):
-
+def solve(
+    initial_board: PuzzleBoard,
+    goal_board: PuzzleBoard,
+    circular: bool = False,
+    luddy: bool = False,
+):
+    """
+    Function where the magic happens
+    :param initial_board: Start instance
+    :param goal_board: Goal instance
+    :param circular: flag whether circular configuration requested or not
+    :param luddy: flag whether luddy configuration requested or not
+    :return: list of path taken or False if solution not found
+    """
     # The dictionary of states already evaluated
     evaluated_states = dict()
 
@@ -277,7 +322,14 @@ def solve(initial_board, goal_board, circular=False, luddy=False):
     return False
 
 
-def calculate_move(old_coordinate: tuple, new_coordinate: tuple, luddy=False):
+def calculate_move(old_coordinate: tuple, new_coordinate: tuple, luddy: bool = False):
+    """
+    Function to determine the move based on older and latest coordinates of zero
+    :param old_coordinate: old coordinates of zero
+    :param new_coordinate: new coordinates of zero
+    :param luddy: a flag
+    :return:
+    """
     import numpy
 
     directions_map = (
@@ -293,22 +345,16 @@ def calculate_move(old_coordinate: tuple, new_coordinate: tuple, luddy=False):
         }
         if luddy
         else {
-            "L": [(-1, 0), (3, 0)],
-            "R": [(1, 0), (-3, 0)],
-            "U": [(0, -1), (0, 3)],
-            "D": [(0, 1), (0, -3)],
+            "L": [(0, -1), (0, 3)],
+            "R": [(0, 1), (0, -3)],
+            "U": [(-1, 0), (3, 0)],
+            "D": [(1, 0), (-3, 0)],
         }
     )
     return [
         direction
         for direction, coordinate in directions_map.items()
-        if tuple(
-            numpy.subtract(
-                tuple(reversed(old_coordinate)) if luddy else old_coordinate,
-                tuple(reversed(new_coordinate)) if luddy else new_coordinate,
-            )
-        )
-        in coordinate
+        if tuple(numpy.subtract(old_coordinate, new_coordinate)) in coordinate
     ][0]
 
 
@@ -346,6 +392,11 @@ def is_solvable(puzzle_board: list) -> bool:
 
 
 def two_d_to_one_d(arr: list) -> list:
+    """
+    A basic function to return a 2D list as a 1D
+    :param arr: 2D list
+    :return: 1D list, with rows attached
+    """
     return [col for row in arr for col in row]
 
 
@@ -356,6 +407,9 @@ if __name__ == "__main__":
 
     if sys.argv[2] not in ["original", "circular", "luddy"]:
         raise (Exception("Error: only 'original', 'circular', and 'luddy' allowed"))
+
+    circular = True if sys.argv[2] == "circular" else False
+    luddy = True if sys.argv[2] == "luddy" else False
 
     # with open(sys.argv[1], "r") as file:
     #     for line in file:
@@ -411,7 +465,9 @@ if __name__ == "__main__":
     print("Solving...")
 
     if is_solvable(puzzle_board=two_d_to_one_d(start_state)):
-        states = solve(start, goal, circular=False, luddy=False)
+        # the main thing
+        states = solve(start, goal, circular=circular, luddy=luddy)
+
         initial_position_of_zero = states[0].board_blocks[0]
         actual_path = list()
 
@@ -426,6 +482,7 @@ if __name__ == "__main__":
                 calculate_move(
                     old_coordinate=initial_position_of_zero,
                     new_coordinate=state.board_blocks[0],
+                    luddy=luddy,
                 )
             )
             initial_position_of_zero = state.board_blocks[0]
