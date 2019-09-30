@@ -322,7 +322,7 @@ def solve(
     return False
 
 
-def calculate_move(old_coordinate: tuple, new_coordinate: tuple, luddy: bool = False):
+def calculate_move(old_coordinate: tuple, new_coordinate: tuple, luddy: bool = False) -> str:
     """
     Function to determine the move based on older and latest coordinates of zero
     :param old_coordinate: old coordinates of zero
