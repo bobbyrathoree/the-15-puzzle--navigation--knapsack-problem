@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 # solve_luddy.py : Sliding tile puzzle solver
 #
-# Code by: [PLEASE PUT YOUR NAMES AND USER IDS HERE]
+# Code by: Bobby Rathore (brathore), James, Dan Li
 #
 # Based on skeleton code by D. Crandall, September 2019
 #
@@ -312,56 +312,124 @@ def calculate_move(old_coordinate: tuple, new_coordinate: tuple, luddy=False):
     ][0]
 
 
-# test cases
+def is_solvable(puzzle_board: list) -> bool:
+    """
+    Checks whether a puzzle grid is odd or even and if it solvable depending on
+    the number of inversions as explained here:
+    https://www.cs.bham.ac.uk/~mdr/teaching/modules04/java2/TilesSolvability.html
+
+    :param puzzle_board: the puzzle board as a 1D list
+    :return: a flag indicating whether the puzzle board instance is solvable
+    """
+    import math
+
+    parity = 0
+    width = math.sqrt(len(puzzle_board))
+    row = 0
+    row_with_zero = 0
+
+    for i in range(len(puzzle_board)):
+        if i % width == 0:  # Go to next row
+            row += 1
+        if puzzle_board[i] == 0:
+            row_with_zero = row  # We found the row with zero
+            continue
+        for j in range(i + 1, len(puzzle_board)):
+            if (puzzle_board[i] > puzzle_board[j]) and puzzle_board[j] != 0:
+                parity += 1
+
+    return (
+        (parity % 2 == 0 if row_with_zero % 2 == 0 else parity % 2 != 0)
+        if width % 2 == 0  # even grid
+        else parity % 2 == 0  # odd grid
+    )
+
+
+def two_d_to_one_d(arr: list) -> list:
+    return [col for row in arr for col in row]
+
+
+# Main event
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         raise (Exception("Error: expected 2 arguments"))
 
     if sys.argv[2] not in ["original", "circular", "luddy"]:
         raise (Exception("Error: only 'original', 'circular', and 'luddy' allowed"))
-    # start_state = list()
+
     # with open(sys.argv[1], "r") as file:
     #     for line in file:
     #         start_state += [[int(i) for i in line.split()]]
-    #
-    # start = PuzzleBoard(start_state)
-    # start = PuzzleBoard(
-    #     [[1, 2, 3, 4], [5, 0, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]]
-    # )  # board 4
-    # start = PuzzleBoard(
-    #     [[0, 2, 3, 4], [1, 5, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]]
-    # )  # board 6
-    start = PuzzleBoard(
-        [[1, 2, 3, 4], [5, 6, 14, 8], [9, 10, 11, 12], [13, 0, 15, 7]]
-    )  # To test chess-horse
-    # start = PuzzleBoard(
-    #     [[15, 2, 1, 12], [8, 5, 6, 11], [4, 9, 10, 7], [3, 14, 13, 0]]
-    # )  # board n
-    # start = PuzzleBoard(
-    #     [[1, 2, 3, 0], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 4]]
-    # )  # To test circular 1
-    # start = PuzzleBoard(
-    #     [[0, 2, 3, 1], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 4]]
-    # )  # To test circular 2
-    goal = PuzzleBoard([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 0]])
+
+    # start_state = [
+    #     [1, 2, 3, 4],
+    #     [5, 0, 6, 7],
+    #     [9, 10, 11, 8],
+    #     [13, 14, 15, 12],
+    # ]  # board 4
+    # start_state = [
+    #     [0, 2, 3, 4],
+    #     [1, 5, 6, 7],
+    #     [9, 10, 11, 8],
+    #     [13, 14, 15, 12],
+    # ]  # board 6
+    start_state = [
+        [1, 2, 3, 4],
+        [5, 6, 14, 8],
+        [9, 10, 11, 12],
+        [13, 0, 15, 7],
+    ]  # To test chess-horse
+    # start_state = [
+    #     [15, 2, 1, 12],
+    #     [8, 5, 6, 11],
+    #     [4, 9, 10, 7],
+    #     [3, 14, 13, 0],
+    # ]  # board n
+    # start_state = [
+    #     [1, 2, 3, 0],
+    #     [5, 6, 7, 8],
+    #     [9, 10, 11, 12],
+    #     [13, 14, 15, 4],
+    # ]  # To test circular 1
+    # start_state = [
+    #     [0, 2, 3, 1],
+    #     [5, 6, 7, 8],
+    #     [9, 10, 11, 12],
+    #     [13, 14, 15, 4],
+    # ]  # To test circular 2
+
+    goal_state = [
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 0],
+    ]  # the requested goal state
+
+    start = PuzzleBoard(start_state)
+    goal = PuzzleBoard(goal_state)
 
     print("Solving...")
 
-    states = solve(start, goal, circular=False, luddy=False)
+    if is_solvable(puzzle_board=two_d_to_one_d(start_state)):
+        states = solve(start, goal, circular=False, luddy=False)
+        initial_position_of_zero = states[0].board_blocks[0]
+        actual_path = list()
 
-    initial_position_of_zero = states[0].board_blocks[0]
-    actual_path = list()
+        # Found the solution, let's print the original puzzle first
+        print("Original Board: \n{0}".format(states[0].to_string()))
 
-    print("Original Board: \n{0}".format(states[0].to_string()))
-    for state in states[1:]:
-        print("\t |\n\t |\n\t |\n\t\\./")
-        print(state.to_string())
-        actual_path.append(
-            calculate_move(
-                old_coordinate=initial_position_of_zero,
-                new_coordinate=state.board_blocks[0],
+        # Now the following intermediate steps
+        for state in states[1:]:
+            print("\t |\n\t |\n\t |\n\t\\./")
+            print(state.to_string())
+            actual_path.append(
+                calculate_move(
+                    old_coordinate=initial_position_of_zero,
+                    new_coordinate=state.board_blocks[0],
+                )
             )
-        )
-        initial_position_of_zero = state.board_blocks[0]
+            initial_position_of_zero = state.board_blocks[0]
 
-    print("\nPath taken: \n{0}".format("".join(actual_path)))
+        print("\nPath taken: \n{0}".format("".join(actual_path)))
+    else:
+        print("Inf")
