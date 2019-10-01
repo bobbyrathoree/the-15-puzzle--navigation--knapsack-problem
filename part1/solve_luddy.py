@@ -411,9 +411,10 @@ if __name__ == "__main__":
     circular = True if sys.argv[2] == "circular" else False
     luddy = True if sys.argv[2] == "luddy" else False
 
-    # with open(sys.argv[1], "r") as file:
-    #     for line in file:
-    #         start_state += [[int(i) for i in line.split()]]
+    with open(sys.argv[1], "r") as file:
+        start_state = []
+        for line in file:
+            start_state += [[int(i) for i in line.split()]]
 
     # start_state = [
     #     [1, 2, 3, 4],
@@ -427,12 +428,12 @@ if __name__ == "__main__":
     #     [9, 10, 11, 8],
     #     [13, 14, 15, 12],
     # ]  # board 6
-    start_state = [
-        [1, 2, 3, 4],
-        [5, 6, 14, 8],
-        [9, 10, 11, 12],
-        [13, 0, 15, 7],
-    ]  # To test chess-horse
+    # start_state = [
+    #     [1, 2, 3, 4],
+    #     [5, 6, 14, 8],
+    #     [9, 10, 11, 12],
+    #     [13, 0, 15, 7],
+    # ]  # To test chess-horse
     # start_state = [
     #     [15, 2, 1, 12],
     #     [8, 5, 6, 11],
