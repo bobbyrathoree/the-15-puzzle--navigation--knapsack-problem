@@ -409,19 +409,19 @@ if __name__ == "__main__":
         raise (Exception("Error: only 'original', 'circular', and 'luddy' allowed"))
 
     circular = True if sys.argv[2] == "circular" else False
-    luddy = True if sys.argv[2] == "luddy" else False
+    luddy = True
 
     with open(sys.argv[1], "r") as file:
         start_state = []
         for line in file:
             start_state += [[int(i) for i in line.split()]]
 
-    # start_state = [
-    #     [1, 2, 3, 4],
-    #     [5, 0, 6, 7],
-    #     [9, 10, 11, 8],
-    #     [13, 14, 15, 12],
-    # ]  # board 4
+    start_state = [
+        [1, 2, 3, 4],
+        [5, 0, 6, 7],
+        [9, 10, 11, 8],
+        [13, 14, 15, 12],
+    ]  # board 4
     # start_state = [
     #     [0, 2, 3, 4],
     #     [1, 5, 6, 7],
