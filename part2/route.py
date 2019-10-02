@@ -2,7 +2,7 @@
 
 # from queue import PriorityQueue
 from heapq import heappush, heappop
-from math import inf, hypot
+from math import inf, hypot, floor
 
 DEST_CITY = None
 DEST_COORDS = None
@@ -34,7 +34,13 @@ class City(object):
 
     def _calc_heuristic(self):
         if HEURISTIC == "segments":
-            return 0  # FIXME: Implement
+            return 0
+            if not self.coords:
+                return inf
+            return floor(
+                hypot(self.coords[0] - DEST_COORDS[0], self.coords[1] - DEST_COORDS[1])
+                / MAX_DISTANCE
+            )
         elif HEURISTIC == "distance":
             if not self.coords:
                 return inf
@@ -42,7 +48,13 @@ class City(object):
                 self.coords[0] - DEST_COORDS[0], self.coords[1] - DEST_COORDS[1]
             )
         elif HEURISTIC == "time":
-            return 0  # FIXME: Implement
+            if not self.coords:
+                return inf
+            return (
+                hypot(self.coords[0] - DEST_COORDS[0], self.coords[1] - DEST_COORDS[1])
+                / 100
+            )  # FIXME: get real max speed
+
         elif HEURISTIC == "mpg":
             return 0  # FIXME: Implement
 
@@ -59,15 +71,15 @@ class Route(object):
 
     def __init__(self, segments):
         self.segments = segments
-        self.g_cost = self._calc_cost()
+        self.g_cost = self._calc_g_cost()
 
-    def _calc_cost(self):
+    def _calc_g_cost(self):
         if HEURISTIC == "segments":
-            return len(segments)
+            return len(self.segments)
         elif HEURISTIC == "distance":
             return sum(seg.dist for seg in self.segments)
         elif HEURISTIC == "time":
-            return sum(seg.speed for seg in self.segments)
+            return sum(seg.dist / seg.speed for seg in self.segments)
         elif HEURISTIC == "mpg":
             return sum(
                 400 * (seg.speed / 150) * (1 - (seg.speed / 150)) ** 4
@@ -104,8 +116,12 @@ def parse_segments(filepath):
         segments = dict()
         for line in file:
             c1, c2, dist, speed, name = line.split()
-            segments.setdefault(c1, []).append(Segment(c1, c2, dist, speed, name))
-            segments.setdefault(c2, []).append(Segment(c2, c1, dist, speed, name))
+            segments.setdefault(c1, []).append(
+                Segment(c1, c2, float(dist), float(speed), name)
+            )
+            segments.setdefault(c2, []).append(
+                Segment(c2, c1, float(dist), float(speed), name)
+            )
         return segments
 
 
@@ -134,6 +150,8 @@ def solve(initial_city):
     closed = set()
     while len(fringe) > 0:
         state = heappop(fringe)
+        if not state.city:
+            continue
         closed.add(state.city)
         if is_goal(state):
             return state.route
@@ -154,13 +172,15 @@ def solve(initial_city):
 
 
 segments = parse_segments("road-segments.txt")
+print(segments["Ada,_Minnesota"])
 gps = parse_gps("city-gps.txt")
+MAX_DISTANCE = max(seg.dist for key, seglist in segments.items() for seg in seglist)
+print(MAX_DISTANCE)
 
 DEST_CITY = "Ada,_Minnesota"
-HEURISTIC = "segments"
+HEURISTIC = "distance"
 DEST_COORDS = gps[DEST_CITY]
 cities = {name: City(name, segments[name], gps.get(name, None)) for name in segments}
-
 out = solve(cities["Abbot_Village,_Maine"])
 print(out)
-print(len(out.segments))
+print(sum(s.dist for s in out.segments))
