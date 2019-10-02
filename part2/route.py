@@ -2,21 +2,27 @@
 
 # from queue import PriorityQueue
 from heapq import heappush, heappop
-from math import inf, hypot, floor, radians, degrees, sin, cos, asin, acos, sqrt
+from math import inf, floor, radians, sin, cos, acos
 
+CITIES: dict = {}
 DEST_CITY = None
 DEST_COORDS = None
 HEURISTIC = None
 
+MAX_DISTANCE = None
+MAX_SPEEDLIMIT = None
+MIN_SPEEDLIMIT = None
+
 
 class Segment(object):
-    __slots__ = ("from_city", "to_city", "dist", "speed", "name")
+    __slots__ = ("from_city", "to_city", "dist", "speed", "name", "mpg")
 
     def __init__(self, from_city, to_city, dist, speed, name):
         self.from_city = from_city
         self.to_city = to_city
         self.dist = dist
         self.speed = speed
+        self.mpg = 400 * (speed / 150) * (1 - (speed / 150)) ** 4
         self.name = name
 
     def __repr__(self):
@@ -33,40 +39,35 @@ class City(object):
         self.h_cost = self._calc_heuristic()
 
     def _calc_heuristic(self):
+        if not self.coords:
+            return inf
         if HEURISTIC == "segments":
-            if not self.coords:
-                return inf
-            return floor(
-                geo_distance(self.coords[1], self.coords[0], DEST_COORDS[1], DEST_COORDS[0])
-                / MAX_DISTANCE
-            )
+            return floor(self.geo_distance(*self.coords, *DEST_COORDS) / MAX_DISTANCE)
         elif HEURISTIC == "distance":
-            if not self.coords:
-                return inf
-            return geo_distance(self.coords[1], self.coords[0], DEST_COORDS[1], DEST_COORDS[0])
+            return self.geo_distance(*self.coords, *DEST_COORDS)
         elif HEURISTIC == "time":
-            if not self.coords:
-                return inf
-            return (
-                    geo_distance(self.coords[1], self.coords[0], DEST_COORDS[1], DEST_COORDS[0])
-                    / MAX_SPEEDLIMIT
-            )
+            return self.geo_distance(*self.coords, *DEST_COORDS) / MAX_SPEEDLIMIT
         elif HEURISTIC == "mpg":
-            if not self.coords:
-                return inf
-            return (
-                    geo_distance(self.coords[1], self.coords[0], DEST_COORDS[1], DEST_COORDS[0])
-                    / 35  ## FIX the 35 with some function???
-            )
-            ### I plotted out the mpg function,
-            # and find the mpg decreases if speed is over 30 (min_speedlimit overall is 25),
-        # I think it's safe to assume that within the range of possible speed, MPG_fun is monotonously deceasing
+            return self.geo_distance(*self.coords, *DEST_COORDS) / 35
+            # FIX the 35 with some function???
+            # I plotted out the mpg function, and find the mpg decreases if
+            # speed is over 30 (min_speedlimit overall is 25), I think it's
+            # safe to assume that within the range of possible speed, MPG_fun
+            # is monotonously deceasing
 
     def __repr__(self):
         return (
             f"{self.name} {self.coords} \n"
             f"segments: {list(s.to_city for s in self.segments)}\n"
             f"h_cost: {self.h_cost}"
+        )
+
+    @staticmethod
+    def geo_distance(lat1, lon1, lat2, lon2):
+        """from gps coordinates return geo-circular distance"""
+        lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+        return 3958.7 * (
+            acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2))
         )
 
 
@@ -85,12 +86,7 @@ class Route(object):
         elif HEURISTIC == "time":
             return sum(seg.dist / seg.speed for seg in self.segments)
         elif HEURISTIC == "mpg":
-            #### here it should be the sum of (distance of each segments divivded by MPG)
-            # -> you get the total gallons
-            return sum(
-                seg.dist / mpg_fun(seg.speed)
-                for seg in self.segments
-            )
+            return sum(seg.dist / seg.mpg for seg in self.segments)  # gallons
 
     def __repr__(self):
         out = self.segments[0].from_city
@@ -115,16 +111,6 @@ class State(object):
     def invalidate(self):
         self.city = None
         self.route = None
-
-
-# from gps coordinates return geo-circular distance
-def geo_distance(lon1, lat1, lon2, lat2):
-    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
-    return 3958.7 * (acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2)))
-
-
-def mpg_fun(speed):
-    return 400 * (speed / 150) * (1 - (speed / 150)) ** 4
 
 
 def parse_segments(filepath):
@@ -155,7 +141,7 @@ def is_goal(state):
 
 def successors(state):
     return [
-        State(cities[seg.to_city], Route(state.route.segments + [seg]))
+        State(CITIES[seg.to_city], Route(state.route.segments + [seg]))
         for seg in state.city.segments
     ]
 
@@ -187,23 +173,32 @@ def solve(initial_city):
     return False
 
 
-segments = parse_segments("road-segments.txt")
-print(segments["Ada,_Minnesota"])
-gps = parse_gps("city-gps.txt")
-MAX_DISTANCE = max(seg.dist for key, seglist in segments.items() for seg in seglist)
-MAX_SPEEDLIMIT = max(seg.speed for key, seglist in segments.items() for seg in seglist)
-MIN_SPEEDLIMIT = min(seg.speed for key, seglist in segments.items() for seg in seglist)
-print(MAX_DISTANCE)
-print(MAX_SPEEDLIMIT)
-print(MIN_SPEEDLIMIT)
+def setup():
+    global MAX_DISTANCE, MAX_SPEEDLIMIT, MIN_SPEEDLIMIT, DEST_CITY, HEURISTIC
+    global DEST_COORDS, CITIES
+    segments = parse_segments("road-segments.txt")
+    # print(segments["Ada,_Minnesota"])
+    gps = parse_gps("city-gps.txt")
+    MAX_DISTANCE = max(seg.dist for seglist in segments.values() for seg in seglist)
+    MAX_SPEEDLIMIT = max(seg.speed for seglist in segments.values() for seg in seglist)
+    MIN_SPEEDLIMIT = min(seg.speed for seglist in segments.values() for seg in seglist)
+    # print(MAX_DISTANCE)
+    # print(MAX_SPEEDLIMIT)
+    # print(MIN_SPEEDLIMIT)
 
-DEST_CITY = "Ada,_Minnesota"
-HEURISTIC = "mpg"
-DEST_COORDS = gps[DEST_CITY]
-cities = {name: City(name, segments[name], gps.get(name, None)) for name in segments}
-out = solve(cities["Abbot_Village,_Maine"])
-print(out)
-print("total segments", len(out.segments))
-print("total distance:", sum(s.dist for s in out.segments))
-print("total time (hours):", sum(s.dist / s.speed for s in out.segments))
-print("total gas (gallons):", sum(s.dist / mpg_fun(s.speed) for s in out.segments))
+    DEST_CITY = "Ada,_Minnesota"
+    HEURISTIC = "mpg"
+    DEST_COORDS = gps[DEST_CITY]
+    CITIES = {
+        name: City(name, segments[name], gps.get(name, None)) for name in segments
+    }
+
+
+if __name__ == "__main__":
+    setup()
+    out = solve(CITIES["Abbot_Village,_Maine"])
+    print(out)
+    print("total segments", len(out.segments))
+    print("total distance:", sum(s.dist for s in out.segments))
+    print("total time (hours):", sum(s.dist / s.speed for s in out.segments))
+    print("total gas (gallons):", sum(s.dist / s.mpg for s in out.segments))
