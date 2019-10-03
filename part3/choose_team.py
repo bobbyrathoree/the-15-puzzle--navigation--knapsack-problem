@@ -25,7 +25,7 @@ def load_people(filename):
 def approx_solve(people, budget):
     solution = ()
     for (person, (skill, cost)) in sorted(
-        people.items(), key=lambda x: x[1][0] / x[1][1]
+        people.items(), key=lambda x: x[1][0] / x[1][1], reverse=True
     ):
         if budget - cost >= 0:
             solution += ((person, 1),)
