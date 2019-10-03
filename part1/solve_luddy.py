@@ -32,7 +32,7 @@ def quantify_list_to_dict(board_blocks_list: list) -> dict:
 
 
 def swap_location(
-    target: dict, new_location_of_zero: tuple, original_location_of_zero: tuple
+        target: dict, new_location_of_zero: tuple, original_location_of_zero: tuple
 ):
     """
     A function to swap the location of zero and some other number
@@ -143,8 +143,29 @@ class PuzzleBoard:
 
         return estimate
 
+    def estimate_chess_horse_dist(self, other: object) -> int:
+        """
+        Heuristic for chess_horse distances, I'll explain in group meeting
+        :param other:
+        :return: estimated distance
+        """
+        estimate = 0
+        for index in range(len(self.board_blocks)):
+            x = abs(other.board_blocks[index][0] - self.board_blocks[index][0])
+            y = abs(other.board_blocks[index][1] - self.board_blocks[index][1])
+            if (x, y) == (2, 1) or (x, y) == (1, 2):
+                estimate += 1
+            elif (x, y) == (3, 3) or (x, y) == (1, 1) or (x, y) == (3, 1) or (x, y) == (1, 3):
+                estimate += 2
+            elif (x, y) == (1, 0) or (x, y) == (0, 1) or (x, y) == (3, 0) or (x, y) == (0, 3) or (x, y) == (3, 2) or (
+            x, y) == (3, 2):
+                estimate += 3
+            elif (x, y) == (2, 2) or (x, y) == (2, 0) or (x, y) == (0, 2):
+                estimate += 4
+        return estimate / 2
+
     def get_successors(
-        self, former: object, circular: bool = False, luddy: bool = False
+            self, former: object, circular: bool = False, luddy: bool = False
     ) -> list:
         """
         Function to get all successors of a puzzle board instance,
@@ -205,15 +226,15 @@ class PuzzleBoard:
 
             # skip this state if we've moved off the board
             if (
-                any(
-                    [
-                        new_location_of_zero[0] < 0,
-                        new_location_of_zero[1] < 0,
-                        new_location_of_zero[0] > self.width - 1,
-                        new_location_of_zero[1] > self.height - 1,
-                    ]
-                )
-                and not circular
+                    any(
+                        [
+                            new_location_of_zero[0] < 0,
+                            new_location_of_zero[1] < 0,
+                            new_location_of_zero[0] > self.width - 1,
+                            new_location_of_zero[1] > self.height - 1,
+                        ]
+                    )
+                    and not circular
             ):
                 # print("We're moving outside the bounds of board.")
                 continue
@@ -237,10 +258,10 @@ class PuzzleBoard:
 
 
 def solve(
-    initial_board: PuzzleBoard,
-    goal_board: PuzzleBoard,
-    circular: bool = False,
-    luddy: bool = False,
+        initial_board: PuzzleBoard,
+        goal_board: PuzzleBoard,
+        circular: bool = False,
+        luddy: bool = False,
 ):
     """
     Function where the magic happens
@@ -271,7 +292,10 @@ def solve(
     heapq.heapify(fringe)
 
     # For the first node, that value is completely heuristic.
-    stgptn_score[initial_board] = initial_board.calculate_manhattan_distance(goal_board)
+    if not luddy:
+        stgptn_score[initial_board] = initial_board.calculate_manhattan_distance(goal_board)
+    else:
+        stgptn_score[initial_board] = initial_board.estimate_chess_horse_dist(goal_board)
 
     # While there are yet nodes to inspect,
     while len(fringe) > 0:
@@ -297,7 +321,7 @@ def solve(
 
         # For each possible neighbor of our current state,
         for neighbor in current.get_successors(
-            origin.get(current), circular=circular, luddy=luddy
+                origin.get(current), circular=circular, luddy=luddy
         ):
             # Skip it if it's already been evaluated
             if neighbor in evaluated_states:
@@ -315,9 +339,14 @@ def solve(
             # If we got to this point, add it!
             origin[neighbor] = current
             sttn_score[neighbor] = tentative_sttn_score
-            stgptn_score[neighbor] = sttn_score[
-                neighbor
-            ] + neighbor.calculate_manhattan_distance(goal_board)
+            if not luddy:
+                stgptn_score[neighbor] = sttn_score[
+                                             neighbor
+                                         ] + neighbor.calculate_manhattan_distance(goal_board)
+            else:
+                stgptn_score[neighbor] = sttn_score[
+                                             neighbor
+                                         ] + neighbor.estimate_chess_horse_dist(goal_board)
 
     return False
 
@@ -381,7 +410,7 @@ def is_solvable(puzzle_board: list) -> bool:
             row_with_zero = row  # We found the row with zero
             continue
         for j in range(i + 1, len(puzzle_board)):
-            if (puzzle_board[i] > puzzle_board[j]) and puzzle_board[j] != 0:
+            if int(puzzle_board[i]) > int(puzzle_board[j]) and (int(puzzle_board[j]) != 0):
                 parity += 1
 
     return (
@@ -465,7 +494,7 @@ if __name__ == "__main__":
 
     print("Solving...")
 
-    if not is_solvable(puzzle_board=two_d_to_one_d(start_state)) and not circular and not luddy:
+    if not is_solvable(puzzle_board=two_d_to_one_d(start_state)) and (not circular) and (not luddy):
         print("Inf")
 
     else:
