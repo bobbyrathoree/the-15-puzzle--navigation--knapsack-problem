@@ -2,7 +2,7 @@
 #
 # choose_team.py : Choose a team of maximum skill under a fixed budget
 #
-# Code by: [PLEASE PUT YOUR NAMES AND USER IDS HERE]
+# Code by: Bobby Rathore (brathore), James Mochizuki-Freeman (jmochizu), Dan Li (dli1
 #
 # Based on skeleton code by D. Crandall, September 2019
 #
