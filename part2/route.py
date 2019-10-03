@@ -85,7 +85,7 @@ class Route(object):
         elif HEURISTIC == "time":
             return sum(seg.dist / seg.speed for seg in self.segments)
         elif HEURISTIC == "mpg":
-            #### here it should be the sum of (distance of each segments divivded by MPG)
+            # here it should be the sum of (distance of each segments divivded by MPG)
             # -> you get the total gallons
             return sum(
                 seg.dist / mpg_fun(seg.speed)

@@ -5,10 +5,10 @@
 #
 # Based on skeleton code by D. Crandall, September 2019
 #
-import heapq
-import copy
-import sys
 import collections
+import copy
+import heapq
+import sys
 
 # For each node, the total cost of getting from the start node to the goal
 # by passing by that node. That value is partly known, partly heuristic.
@@ -32,7 +32,7 @@ def quantify_list_to_dict(board_blocks_list: list) -> dict:
 
 
 def swap_location(
-    target: dict, new_location_of_zero: tuple, original_location_of_zero: tuple
+        target: dict, new_location_of_zero: tuple, original_location_of_zero: tuple
 ):
     """
     A function to swap the location of zero and some other number
@@ -144,7 +144,7 @@ class PuzzleBoard:
         return estimate
 
     def get_successors(
-        self, former: object, circular: bool = False, luddy: bool = False
+            self, former: object, circular: bool = False, luddy: bool = False
     ) -> list:
         """
         Function to get all successors of a puzzle board instance,
@@ -205,15 +205,15 @@ class PuzzleBoard:
 
             # skip this state if we've moved off the board
             if (
-                any(
-                    [
-                        new_location_of_zero[0] < 0,
-                        new_location_of_zero[1] < 0,
-                        new_location_of_zero[0] > self.width - 1,
-                        new_location_of_zero[1] > self.height - 1,
-                    ]
-                )
-                and not circular
+                    any(
+                        [
+                            new_location_of_zero[0] < 0,
+                            new_location_of_zero[1] < 0,
+                            new_location_of_zero[0] > self.width - 1,
+                            new_location_of_zero[1] > self.height - 1,
+                        ]
+                    )
+                    and not circular
             ):
                 # print("We're moving outside the bounds of board.")
                 continue
@@ -237,10 +237,10 @@ class PuzzleBoard:
 
 
 def solve(
-    initial_board: PuzzleBoard,
-    goal_board: PuzzleBoard,
-    circular: bool = False,
-    luddy: bool = False,
+        initial_board: PuzzleBoard,
+        goal_board: PuzzleBoard,
+        circular: bool = False,
+        luddy: bool = False,
 ):
     """
     Function where the magic happens
@@ -273,6 +273,8 @@ def solve(
     # For the first node, that value is completely heuristic.
     stgptn_score[initial_board] = initial_board.calculate_manhattan_distance(goal_board)
 
+    possible_number_of_inversions = []
+    i = 0
     # While there are yet nodes to inspect,
     while len(fringe) > 0:
 
@@ -296,12 +298,32 @@ def solve(
         evaluated_states[current] = True
 
         # For each possible neighbor of our current state,
+        neighbor: object
+
         for neighbor in current.get_successors(
-            origin.get(current), circular=circular, luddy=luddy
+                origin.get(current), circular=circular, luddy=luddy
         ):
+
             # Skip it if it's already been evaluated
             if neighbor in evaluated_states:
                 continue
+
+            print("current neighbor is:\n", neighbor.to_string())
+            i += 1
+            if i > 999999:
+                return possible_number_of_inversions
+            print(neighbor.to_string())
+            neighbor_as_list = list(neighbor.to_string().split())
+            print(neighbor_as_list)
+            inv = count_inversions(puzzle_board=neighbor_as_list)
+            print("current number of inversions is:", inv)
+            possible_number_of_inversions.append(inv)
+
+            import csv
+            with open('inversion_999999_states_luddy.csv', 'w') as output:
+                writer = csv.writer(output, lineterminator='\n')
+                for val in possible_number_of_inversions:
+                    writer.writerow([val])
 
             # Add it to our open heap
             heapq.heappush(fringe, neighbor)
@@ -316,8 +338,8 @@ def solve(
             origin[neighbor] = current
             sttn_score[neighbor] = tentative_sttn_score
             stgptn_score[neighbor] = sttn_score[
-                neighbor
-            ] + neighbor.calculate_manhattan_distance(goal_board)
+                                         neighbor
+                                     ] + neighbor.calculate_manhattan_distance(goal_board)
 
     return False
 
@@ -391,6 +413,28 @@ def is_solvable(puzzle_board: list) -> bool:
     )
 
 
+def count_inversions(puzzle_board: list) -> int:
+    """
+    count the number of inversions
+
+    :param puzzle_board: the puzzle board as a 1D list
+    :return: the number of inversions of the input board.
+    """
+    import math
+
+    parity = 0
+    width = math.sqrt(len(puzzle_board))
+    row = 0
+    row_with_zero = 0
+
+    for i in range(len(puzzle_board)):
+        for j in range(i + 1, len(puzzle_board)):
+            if (int(puzzle_board[i]) > int(puzzle_board[j])) and int(puzzle_board[j]) != 0:
+                parity += 1
+
+    return parity
+
+
 def two_d_to_one_d(arr: list) -> list:
     """
     A basic function to return a 2D list as a 1D
@@ -453,12 +497,19 @@ if __name__ == "__main__":
     #     [13, 14, 15, 4],
     # ]  # To test circular 2
 
+    # goal_state = [
+    #     [1, 2, 3, 4],
+    #     [5, 6, 7, 8],
+    #     [9, 10, 11, 12],
+    #     [13, 14, 15, 0],
+    # ]  # the requested goal state
+
     goal_state = [
-        [1, 2, 3, 4],
-        [5, 6, 7, 8],
-        [9, 10, 11, 12],
-        [13, 14, 15, 0],
-    ]  # the requested goal state
+        [0, 2, 3, 4],
+        [1, 5, 6, 7],
+        [9, 10, 11, 8],
+        [13, 14, 15, 12],
+    ]
 
     start = PuzzleBoard(start_state)
     goal = PuzzleBoard(goal_state)
@@ -471,6 +522,15 @@ if __name__ == "__main__":
     else:
         # the main thing
         states = solve(start, goal, circular=circular, luddy=luddy)
+        n_inversions = list(dict.fromkeys(states))
+        print("total board states:", len(states))
+        print(n_inversions)
+        print("length:", len(n_inversions))
+        print("max:", max(n_inversions))
+        print("min:", min(n_inversions))
+        exit()
+        # from numpy import savetxt
+        # savetxt('number_of_inversions.csv', states)
 
         initial_position_of_zero = states[0].board_blocks[0]
         actual_path = list()

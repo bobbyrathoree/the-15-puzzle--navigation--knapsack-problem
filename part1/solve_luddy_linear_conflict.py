@@ -416,6 +416,15 @@ def solve(initial_board, goal_board):
 
 # test cases
 if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        raise (Exception("Error: expected 2 arguments"))
+
+    if sys.argv[2] not in ["original", "circular", "luddy"]:
+        raise (Exception("Error: only 'original', 'circular', and 'luddy' allowed"))
+    # start_state = list()
+    # with open(sys.argv[1], "r") as file:
+    #     for line in file:
+    #         start_state += [[int(i) for i in line.split()]]
     # if len(sys.argv) != 3:
     #     raise (Exception("Error: expected 2 arguments"))
     #
@@ -444,12 +453,12 @@ if __name__ == "__main__":
     # start = PuzzleBoard(
     #     [[0, 2, 3, 4], [1, 5, 6, 7], [9, 10, 11, 8], [13, 14, 15, 12]], ""
     # )  # board 6
-    start = PuzzleBoard(
-        [[15, 2, 1, 12], [8, 5, 6, 11], [4, 9, 10, 7], [3, 14, 13, 0]], ""
-    )  # board n
     # start = PuzzleBoard(
-    #     [[1, 2, 3, 0], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 4]], ""
-    # )  # To test circular
+    #     [[15, 2, 1, 12], [8, 5, 6, 11], [4, 9, 10, 7], [3, 14, 13, 0]], ""
+    # )  # board n
+    start = PuzzleBoard(
+        [[1, 2, 3, 0], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 4]], ""
+    )  # To test circular
     goal = PuzzleBoard(
         [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 0]], ""
     )
