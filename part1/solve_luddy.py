@@ -151,16 +151,24 @@ class PuzzleBoard:
         """
         estimate = 0
         for index in range(len(self.board_blocks)):
-            x = abs(other.board_blocks[index][0] - self.board_blocks[index][0])
+            x = abs(
+                other.board_blocks[index][0] - self.board_blocks[index][0])  # x is the column difference (on x axis)
             y = abs(other.board_blocks[index][1] - self.board_blocks[index][1])
+
+            # Heuristic matrix:
+            # | 3 | 2 | 3 | 2 |
+            # | 2 | 1 | 4 | 3 |
+            # | 3 | 2 | 1 | 2 |
+            # | 0 | 3 | 4 | 3 |
+
             if (x, y) == (2, 1) or (x, y) == (1, 2):
                 estimate += 1
-            elif (x, y) == (3, 3) or (x, y) == (1, 1) or (x, y) == (3, 1) or (x, y) == (1, 3):
+            elif (x, y) == (3, 3) or (x, y) == (1, 1) or (x, y) == (3, 1) or (x, y) == (1, 3) or (x, y) == (2, 0):
                 estimate += 2
-            elif (x, y) == (1, 0) or (x, y) == (0, 1) or (x, y) == (3, 0) or (x, y) == (0, 3) or (x, y) == (3, 2) or (
-            x, y) == (3, 2):
+            elif (x, y) == (0, 1) or (x, y) == (0, 3) or (x, y) == (1, 0) or (x, y) == (2, 3) or (x, y) == (3, 0) or (
+                    x, y) == (3, 2):
                 estimate += 3
-            elif (x, y) == (2, 2) or (x, y) == (2, 0) or (x, y) == (0, 2):
+            elif (x, y) == (2, 2) or (x, y) == (0, 2):
                 estimate += 4
         return estimate / 2
 
