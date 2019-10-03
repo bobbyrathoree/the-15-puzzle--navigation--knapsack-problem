@@ -22,19 +22,19 @@ def load_people(filename):
 #  It adds people in decreasing order of "skill per dollar,"
 #  until the budget is exhausted. It exactly exhausts the budget
 #  by adding a fraction of the last person.
-#
 def approx_solve(people, budget):
-
     solution = ()
     for (person, (skill, cost)) in sorted(
         people.items(), key=lambda x: x[1][0] / x[1][1]
     ):
-        if budget - cost > 0:
+        if budget - cost >= 0:
             solution += ((person, 1),)
             budget -= cost
         else:
-            return solution + ((person, budget / cost),)
-
+            if budget / cost == 1:
+                solution += ((person, budget / cost),)
+            else:
+                continue
     return solution
 
 
