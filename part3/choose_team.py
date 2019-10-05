@@ -9,26 +9,32 @@
 import sys
 
 
+class Person(object):
+    __slots__ = ("name", "skill", "cost")
+
+    def __init__(self, name, skill, cost):
+        self.name = name
+        self.skill = float(skill)
+        self.cost = float(cost)
+
+    def __lt__(self, other):
+        return self.skill / self.cost < other.skill / other.cost
+
+
 def load_people(filename):
-    people = {}
     with open(filename, "r") as file:
-        for line in file:
-            l = line.split()
-            people[l[0]] = [float(i) for i in l[1:]]
-    return people
+        return [Person(*line.split()) for line in file]
 
 
 # This function implements a greedy solution to the problem:
 #  It adds people in decreasing order of "skill per dollar,"
 #  until the budget is exhausted.
 def approx_solve(people, budget):
-    solution = ()
-    for (person, (skill, cost)) in sorted(
-        people.items(), key=lambda x: x[1][0] / x[1][1], reverse=True
-    ):
-        if budget - cost >= 0:
-            solution += (person,)
-            budget -= cost
+    solution = []
+    for person in sorted(people, reverse=True):
+        if budget >= person.cost:
+            solution.append(person)
+            budget -= person.cost
     return solution
 
 
@@ -43,12 +49,8 @@ if __name__ == "__main__":
 
     print(
         "Found a group with %d people costing %f with total skill %f"
-        % (
-            len(solution),
-            sum(people[p][1] for p in solution),
-            sum(people[p][0] for p in solution),
-        )
+        % (len(solution), sum(p.cost for p in solution), sum(p.skill for p in solution))
     )
 
     for s in solution:
-        print("%s %f" % (s, float(1)))
+        print("%s %f" % (s.name, float(1)))
