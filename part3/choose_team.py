@@ -20,21 +20,15 @@ def load_people(filename):
 
 # This function implements a greedy solution to the problem:
 #  It adds people in decreasing order of "skill per dollar,"
-#  until the budget is exhausted. It exactly exhausts the budget
-#  by adding a fraction of the last person.
+#  until the budget is exhausted.
 def approx_solve(people, budget):
     solution = ()
     for (person, (skill, cost)) in sorted(
         people.items(), key=lambda x: x[1][0] / x[1][1], reverse=True
     ):
         if budget - cost >= 0:
-            solution += ((person, 1),)
+            solution += (person,)
             budget -= cost
-        else:
-            if budget / cost == 1:
-                solution += ((person, budget / cost),)
-            else:
-                continue
     return solution
 
 
@@ -51,10 +45,10 @@ if __name__ == "__main__":
         "Found a group with %d people costing %f with total skill %f"
         % (
             len(solution),
-            sum(people[p][1] * f for p, f in solution),
-            sum(people[p][0] * f for p, f in solution),
+            sum(people[p][1] for p in solution),
+            sum(people[p][0] for p in solution),
         )
     )
 
     for s in solution:
-        print("%s %f" % s)
+        print("%s %f" % (s, float(1)))
