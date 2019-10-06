@@ -3,6 +3,7 @@
 # from queue import PriorityQueue
 from heapq import heappush, heappop
 from math import floor, radians, sin, cos, acos
+import sys
 
 CITIES: dict = {}
 DEST_CITY = None
@@ -39,13 +40,32 @@ class City(object):
         self.coords = coords
         self.h_cost = self._calc_heuristic()
 
-    """
     def _calc_fake_coords(self):
         # FIXME: find some better way of calculating
-        lat = sum(seg.to_city.coords[0] for seg in self.segments) / len(self.segments)
-        lon = sum(seg.to_city.coords[1] for seg in self.segments) / len(self.segments)
-        return (lat, lon)
-    """
+        """
+        calculate self's coordinates based on neighbors' coordinates
+        only when the distance between the neighbor and goal city is 1/epsilon times longer than the segments
+        :return:
+        """
+
+        lat = 0
+        lon = 0
+        EPSILON = 0.1
+        coords_list = []
+        for seg in self.segments:
+            if not (not seg.to_city.coords or not (
+                    seg.dist < EPSILON * seg.to_city.geo_distance(*seg.to_city.coords, *DEST_COORDS))):
+                coords_list.append(seg.to_city.coords)
+        if len(coords_list) != 0:
+            for c in coords_list:
+                lat += c[0]
+                lon += c[1]
+            lat = lat / len(coords_list)
+            lon = lon / len(coords_list)
+            self.coords = (lat, lon)
+        else:
+            self.coords = None
+        return
 
     def _calc_heuristic(self):
         if not self.coords:
@@ -59,7 +79,7 @@ class City(object):
         elif HEURISTIC == "mpg":
             return self.geo_distance(*self.coords, *DEST_COORDS) / MAX_MPG
 
-    def __repr__(self):
+    def __repr__(self) -> object:
         return (
             f"{self.name} {self.coords} \n"
             f"segments: {list(s.to_city.name for s in self.segments)}\n"
@@ -153,19 +173,20 @@ def successors(state):
 
 
 def solve(initial_city):
+    print("solving")
     fringe = []
     heappush(fringe, State(initial_city, Route([])))
-    # closed = set()
+    closed = set()
     while len(fringe) > 0:
         state = heappop(fringe)
         # if not state.city:
         #    continue
-        # closed.add(state.city)
+        closed.add(state.city)
         if is_goal(state):
             return state.route
         for succ in successors(state):
-            # if succ.city in closed:
-            #    continue
+            if succ.city in closed:
+                continue
             # match = next((s for s in fringe if s.city == succ.city), None)
             # if not match:
             #    heappush(fringe, succ)
@@ -175,26 +196,38 @@ def solve(initial_city):
             # invalidate a heapq item instead of removing it, per
             # https://docs.python.org/3.6/library/heapq.html
             # match.invalidate()
+            if not succ.city.coords:
+                succ.city._calc_fake_coords()
+                # print("CITIES WITHOUT COORDS:",succ.city, succ.city.coords)
             heappush(fringe, succ)
     return False
 
 
 def setup():
-    global MAX_DISTANCE, MAX_SPEEDLIMIT, MIN_SPEEDLIMIT, DEST_CITY, HEURISTIC
+    global MAX_DISTANCE, MAX_SPEEDLIMIT, MIN_SPEEDLIMIT, START_CITY, DEST_CITY, HEURISTIC
     global DEST_COORDS, CITIES
+
+    if len(sys.argv) != 4:
+        raise (Exception("Error: expected 3 arguments: start city, end city, and cost function"))
+
+    if sys.argv[3] not in ["segments", "distance", "time", "mpg"]:
+        raise (Exception("Error: only 'segments', 'distance', 'time', 'mpg' allowed as cost function"))
+
+    START_CITY = sys.argv[1]
+    DEST_CITY = sys.argv[2]
+    HEURISTIC = sys.argv[3]
+
+
     segments = parse_segments("road-segments.txt")
-    # print(segments["Ada,_Minnesota"])
-    gps = parse_gps("city-gps.txt")
+    gps: dict = parse_gps("city-gps.txt")
     MAX_DISTANCE = max(seg.dist for segs in segments.values() for seg in segs)
     MAX_SPEEDLIMIT = max(seg.speed for segs in segments.values() for seg in segs)
     MIN_SPEEDLIMIT = min(seg.speed for segs in segments.values() for seg in segs)
-    # print(MAX_DISTANCE)
-    # print(MAX_SPEEDLIMIT)
-    # print(MIN_SPEEDLIMIT)
 
-    DEST_CITY = "Ada,_Minnesota"
-    HEURISTIC = "mpg"
+    # DEST_CITY = "Ada,_Minnesota"
+    # HEURISTIC = "mpg"
     DEST_COORDS = gps[DEST_CITY]
+
     CITIES = {
         name: City(name, segments[name], gps.get(name, None)) for name in segments
     }
@@ -204,11 +237,24 @@ def setup():
             seg.to_city = CITIES[seg.to_city]
 
 
+def last_line_output(out):
+    total_segments = len(out.segments)
+    total_miles = sum(s.dist for s in out.segments)
+    total_hours = sum(s.dist / s.speed for s in out.segments)
+    total_gas_gallons = sum(s.dist / s.mpg for s in out.segments)
+    cities_on_road = [START_CITY]
+    for seg in out.segments:
+        cities_on_road.append(seg.to_city.name)
+    print(total_segments, total_miles, total_hours, total_gas_gallons, *cities_on_road)
+
+
+
 if __name__ == "__main__":
     setup()
-    out = solve(CITIES["Abbot_Village,_Maine"])
+    out = solve(CITIES[START_CITY])
     print(out)
     print("total segments", len(out.segments))
     print("total distance:", sum(s.dist for s in out.segments))
     print("total time (hours):", sum(s.dist / s.speed for s in out.segments))
     print("total gas (gallons):", sum(s.dist / s.mpg for s in out.segments))
+    last_line_output(out)
