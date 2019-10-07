@@ -143,6 +143,20 @@ class PuzzleBoard:
                 other.board_blocks[index][0] - self.board_blocks[index][0]
             ) + abs(other.board_blocks[index][1] - self.board_blocks[index][1])
 
+        # Solve linear conflict by adding 2 to the estimate
+        estimate += (
+            2
+            if other.board_blocks[
+                [
+                    key
+                    for key, val in self.board_blocks.items()
+                    if val == other.board_blocks[index]
+                ][0]
+            ]
+            == self.board_blocks[index]
+            else 0
+        )
+
         return estimate
 
     def estimate_chess_horse_dist(self, other: object) -> int:
@@ -153,70 +167,79 @@ class PuzzleBoard:
         """
         estimate = 0
         for index in range(len(self.board_blocks)):
-            x = abs(
-                other.board_blocks[index][0] - self.board_blocks[index][0]
-            )  # x is the column difference (on x axis)
+            x = abs(other.board_blocks[index][0] - self.board_blocks[index][0])
             y = abs(other.board_blocks[index][1] - self.board_blocks[index][1])
 
             corners = [(0, 0), (0, 3), (3, 0), (3, 3)]
             mid_edges = [(0, 1), (0, 2), (1, 0), (2, 0), (3, 1), (3, 2), (1, 3), (2, 3)]
+
             lookup_table = (
                 {
-                    "1": [(1, 2), (2, 1)],
-                    "2": [(1, 3), (0, 2), (2, 0), (3, 1), (3, 3)],
-                    "3": [(0, 1), (1, 0), (2, 3), (3, 2)],
-                    "4": [(1, 1), (2, 2)],
-                    "5": [(0, 3), (3, 0)],
+                    (1, 2): 1,
+                    (2, 1): 1,
+                    (1, 3): 2,
+                    (0, 2): 2,
+                    (2, 0): 2,
+                    (3, 1): 2,
+                    (3, 3): 2,
+                    (0, 1): 3,
+                    (1, 0): 3,
+                    (2, 3): 3,
+                    (3, 2): 3,
+                    (1, 1): 4,
+                    (2, 2): 4,
+                    (0, 3): 5,
+                    (3, 0): 5,
                 }
                 if self.board_blocks[index] in corners
                 else (
                     {
-                        "1": [(1, 2), (2, 1)],
-                        "2": [(0, 2), (1, 1), (2, 0), (3, 1)],
-                        "3": [(0, 1), (1, 0), (3, 0), (3, 2)],
-                        "4": [(2, 2)],
+                        (1, 2): 1,
+                        (2, 1): 1,
+                        (0, 2): 2,
+                        (1, 1): 2,
+                        (2, 0): 2,
+                        (3, 1): 2,
+                        (0, 1): 3,
+                        (1, 0): 3,
+                        (3, 0): 3,
+                        (3, 2): 3,
+                        (2, 2): 4,
                     }
                     if self.board_blocks[index] in mid_edges
                     else {
-                        "1": [(1, 2), (2, 1)],
-                        "2": [(1, 1), (0, 2), (2, 0)],
-                        "3": [(0, 1), (1, 0)],
-                        "4": [(2, 2)],
+                        (1, 2): 1,
+                        (2, 1): 1,
+                        (1, 1): 2,
+                        (0, 2): 2,
+                        (2, 0): 2,
+                        (0, 1): 3,
+                        (1, 0): 3,
+                        (2, 2): 4,
                     }
                 )
             )
-            distance = [int(key) for key, val in lookup_table.items() if (x, y) in val]
-            estimate += distance[0] if distance else 0
+
+            distance = lookup_table.get((x, y))
+            estimate += distance if distance else 0
+
             """
             0 3 2 5
             3 4 1 2  corners
             2 1 4 3
             5 2 3 2
-            """
-            """
+            
             3 0 3 2
             2 3 2 1  mid-edges
             1 2 1 4
             2 3 2 3
-            """
-            """
+            
             4 3 2 1
             3 0 3 2  mid-4
             2 3 2 1
             1 2 1 4
             """
 
-            # twos = [(3, 3), (1, 1), (3, 1), (1, 3), (2, 0)]
-            # threes = [(0, 1), (0, 3), (1, 0), (2, 3), (3, 0), (3, 2)]
-            #
-            # if (x, y) == (2, 1) or (x, y) == (1, 2):
-            #     estimate += 1
-            # elif (x, y) in twos:
-            #     estimate += 2
-            # elif (x, y) in threes:
-            #     estimate += 3
-            # elif (x, y) == (2, 2) or (x, y) == (0, 2):
-            #     estimate += 4
         return estimate
 
     def get_successors(
@@ -495,7 +518,7 @@ if __name__ == "__main__":
         raise (Exception("Error: only 'original', 'circular', and 'luddy' allowed"))
 
     circular = True if sys.argv[2] == "circular" else False
-    luddy = True
+    luddy = True if sys.argv[2] == "luddy" else False
 
     # with open(sys.argv[1], "r") as file:
     #     start_state = []
@@ -515,10 +538,16 @@ if __name__ == "__main__":
     #     [13, 14, 15, 12],
     # ]  # board 6
     # start_state = [
-    #     [1, 2, 3, 4],
-    #     [5, 0, 14, 8],
-    #     [9, 10, 11, 6],
-    #     [13, 12, 15, 7],
+    #     [2, 5, 3, 4],
+    #     [0, 10, 6, 7],
+    #     [1, 9, 11, 8],
+    #     [13, 14, 15, 12],
+    # ]  # board 6 enhanced
+    # start_state = [
+    #     [1, 2, 3, 11],
+    #     [12, 4, 9, 8],
+    #     [15, 10, 5, 6],
+    #     [13, 14, 0, 7],
     # ]  # To test chess-horse
     # start_state = [
     #     [15, 2, 1, 12],
@@ -578,5 +607,5 @@ if __name__ == "__main__":
             )
             initial_position_of_zero = state.board_blocks[0]
 
-        print("Time taken: {0}".format(time.time() - tick))
-        print("\nPath taken: \n{0}".format("".join(actual_path)))
+        print("\nTime taken: {0}s".format(round((time.time() - tick) / 60, 4)))
+        print("Path taken: \n{0}".format("".join(actual_path)))
