@@ -6,16 +6,43 @@
 # Based on skeleton code by D. Crandall, September 2019
 #
 import heapq
-import copy
 import sys
-import collections
-
-# For each node, the total cost of getting from the start node to the goal
-# by passing by that node. That value is partly known, partly heuristic.
-# stgptn: start to goal passing that node
 import time
 
-stgptn_score = collections.defaultdict(lambda: float("inf"))
+HEURISTIC = None
+GOAL_BOARD = None
+SIZE = 4
+
+_CHESS_CORNER = ((0, 3, 2, 5), (3, 4, 1, 2), (2, 1, 4, 3), (5, 2, 3, 2))
+_CHESS_MID_EDGES = ((3, 0, 3, 2), (2, 3, 2, 1), (1, 2, 1, 4), (2, 3, 2, 3))
+_CHESS_MID_EDGES_T = tuple(zip(*_CHESS_MID_EDGES))
+_CHESS_MID_4 = ((4, 3, 2, 1), (3, 0, 3, 2), (2, 3, 2, 1), (1, 2, 1, 4))
+
+_CHESS_COSTS_LISTS = {
+    (0, 0): _CHESS_CORNER,
+    (1, 0): _CHESS_MID_EDGES,
+    (2, 0): [row[::-1] for row in _CHESS_MID_EDGES],
+    (3, 0): [row[::-1] for row in _CHESS_CORNER],
+    (0, 1): _CHESS_MID_EDGES_T,
+    (1, 1): _CHESS_MID_4,
+    (2, 1): [row[::-1] for row in _CHESS_MID_4],
+    (3, 1): [row[::-1] for row in _CHESS_MID_EDGES_T],
+    (0, 2): _CHESS_MID_EDGES_T[::-1],
+    (1, 2): _CHESS_MID_4[::-1],
+    (2, 2): [row[::-1] for row in _CHESS_MID_4][::-1],
+    (3, 2): [row[::-1] for row in _CHESS_MID_EDGES_T][::-1],
+    (0, 3): _CHESS_CORNER[::-1],
+    (1, 3): _CHESS_MID_EDGES[::-1],
+    (2, 3): [row[::-1] for row in _CHESS_MID_EDGES][::-1],
+    (3, 3): [row[::-1] for row in _CHESS_CORNER][::-1],
+}
+
+CHESS_COSTS = dict()
+for key, val in _CHESS_COSTS_LISTS.items():
+    CHESS_COSTS[key] = dict()
+    for y, row in enumerate(val):
+        for x, item in enumerate(row):
+            CHESS_COSTS[key][(x, y)] = item
 
 
 def quantify_list_to_dict(board_blocks_list: list) -> dict:
@@ -33,30 +60,30 @@ def quantify_list_to_dict(board_blocks_list: list) -> dict:
     return dictionary
 
 
-def swap_location(
-    target: dict, new_location_of_zero: tuple, original_location_of_zero: tuple
-):
+def swap_location(target: dict, new_location_of_zero: tuple):
     """
     A function to swap the location of zero and some other number
     :param target: the PuzzleBoard instance dictionary
     :param new_location_of_zero: coordinates of the intended location of zero
-    :param original_location_of_zero: coordinates of the current location of zero
     """
-    # Move the zero
-    target[0] = new_location_of_zero
-
-    # Move the other element that was replaced back to zero's original position
-    target[
-        [
-            number
-            for number, location in target.items()
-            if number != 0 and location == new_location_of_zero
-        ][0]
-    ] = original_location_of_zero
+    # Get number at target coordinates
+    number = next(num for num, loc in target.items() if loc == new_location_of_zero)
+    # Swap
+    target[0], target[number] = target[number], target[0]
 
 
 class PuzzleBoard:
-    def __init__(self, board_blocks):
+    __slots__ = (
+        "board_blocks",
+        "valid",
+        "path",
+        "parent",
+        "g_cost",
+        "h_cost",
+        "f_cost",
+    )
+
+    def __init__(self, board_blocks, path, parent, isGoal=False):
         """
         Constructor. Takes a dictionary of integer-tuple pairs that describe block positions.
         Alternatively, takes a 2D list array that is then converted to dict.
@@ -66,8 +93,19 @@ class PuzzleBoard:
             self.board_blocks = quantify_list_to_dict(board_blocks)
         else:
             self.board_blocks = board_blocks
-        self.width = self.__get_width__()
-        self.height = int(len(self.board_blocks) / self.width)
+        self.valid = True
+        self.path = path
+        self.parent = parent
+        self.g_cost = len(path)
+        if isGoal:
+            self.h_cost = 0
+        else:
+            self.h_cost = (
+                self._estimate_chess_horse_dist(GOAL_BOARD)
+                if HEURISTIC == "luddy"
+                else self._calculate_manhattan_distance(GOAL_BOARD)
+            )
+        self.f_cost = self.g_cost + self.h_cost
 
     def __eq__(self, other: object) -> bool:
         """
@@ -80,7 +118,7 @@ class PuzzleBoard:
             return False
         return self.board_blocks == other.board_blocks
 
-    def __lt__(self, other: object) -> bool:
+    def __lt__(self, other: "PuzzleBoard") -> bool:
         """
         Less-than function. Compares stgptn-scores.
         :param other: origin object
@@ -89,7 +127,7 @@ class PuzzleBoard:
         """
         if not other:
             return False
-        return stgptn_score[self] < stgptn_score[other]
+        return self.f_cost < other.f_cost
 
     def __hash__(self):
         """
@@ -98,27 +136,16 @@ class PuzzleBoard:
         """
         return hash(frozenset(self.board_blocks.items()))
 
-    def __get_width__(self):
-        """
-        Returns the width of this puzzle.
-        :return: width of PuzzleBoard instance
-        """
-        max_width = 0
-        for value in self.board_blocks.values():
-            max_width = max(value[0], max_width)
-
-        return max_width + 1
-
     def to_string(self):
         """
         Returns the state in an easy-to-read fashion.
         :return: stringified PuzzleBoard instance
         """
         array = []
-        for x in range(self.height):
+        for x in range(SIZE):
             # print("y:",y)
             row = []
-            for y in range(self.width):
+            for y in range(SIZE):
                 # print("x:",x)
                 for block in self.board_blocks.items():
                     # print(block)
@@ -130,7 +157,7 @@ class PuzzleBoard:
         string = "\n".join("\t".join("%i" % x for x in y) for y in array)
         return string
 
-    def calculate_manhattan_distance(self, other: object) -> int:
+    def _calculate_manhattan_distance(self, other: "PuzzleBoard") -> int:
         """
         Our go-to heuristic: manhattan distance
         :param other: the puzzle board instance to calculate manhattan distance from
@@ -159,98 +186,20 @@ class PuzzleBoard:
 
         return estimate
 
-    def estimate_chess_horse_dist(self, other: object) -> int:
+    def _estimate_chess_horse_dist(self, other: "PuzzleBoard") -> int:
         """
-        Heuristic for chess_horse distances, I'll explain in group meeting
         :param other:
         :return: estimated distance
         """
-        estimate = 0
-        for index in range(len(self.board_blocks)):
-            x = abs(other.board_blocks[index][0] - self.board_blocks[index][0])
-            y = abs(other.board_blocks[index][1] - self.board_blocks[index][1])
+        return sum(
+            CHESS_COSTS[self.board_blocks[i]][other.board_blocks[i]]
+            for i in range(1, len(self.board_blocks))
+        )
 
-            corners = [(0, 0), (0, 3), (3, 0), (3, 3)]
-            mid_edges = [(0, 1), (0, 2), (1, 0), (2, 0), (3, 1), (3, 2), (1, 3), (2, 3)]
-
-            lookup_table = (
-                {
-                    (1, 2): 1,
-                    (2, 1): 1,
-                    (1, 3): 2,
-                    (0, 2): 2,
-                    (2, 0): 2,
-                    (3, 1): 2,
-                    (3, 3): 2,
-                    (0, 1): 3,
-                    (1, 0): 3,
-                    (2, 3): 3,
-                    (3, 2): 3,
-                    (1, 1): 4,
-                    (2, 2): 4,
-                    (0, 3): 5,
-                    (3, 0): 5,
-                }
-                if self.board_blocks[index] in corners
-                else (
-                    {
-                        (1, 2): 1,
-                        (2, 1): 1,
-                        (0, 2): 2,
-                        (1, 1): 2,
-                        (2, 0): 2,
-                        (3, 1): 2,
-                        (0, 1): 3,
-                        (1, 0): 3,
-                        (3, 0): 3,
-                        (3, 2): 3,
-                        (2, 2): 4,
-                    }
-                    if self.board_blocks[index] in mid_edges
-                    else {
-                        (1, 2): 1,
-                        (2, 1): 1,
-                        (1, 1): 2,
-                        (0, 2): 2,
-                        (2, 0): 2,
-                        (0, 1): 3,
-                        (1, 0): 3,
-                        (2, 2): 4,
-                    }
-                )
-            )
-
-            distance = lookup_table.get((x, y))
-            estimate += distance if distance else 0
-
-            """
-            0 3 2 5
-            3 4 1 2  corners
-            2 1 4 3
-            5 2 3 2
-            
-            3 0 3 2
-            2 3 2 1  mid-edges
-            1 2 1 4
-            2 3 2 3
-            
-            4 3 2 1
-            3 0 3 2  mid-4
-            2 3 2 1
-            1 2 1 4
-            """
-
-        return estimate
-
-    def get_successors(
-        self, former: object, circular: bool = False, luddy: bool = False
-    ) -> list:
+    def get_successors(self) -> list:
         """
         Function to get all successors of a puzzle board instance,
         depending on the configuration: cirular or luddy (original is ON by default)
-        :param former: state from which current puzzle board instance comes from
-        :param circular: flag whether circular configuration requested or not
-        :param luddy: flag whether luddy configuration requested or not
         :return: list of possible successors
         """
         successors = list()
@@ -265,7 +214,7 @@ class PuzzleBoard:
                 "G": (1, -2),
                 "H": (1, 2),
             }
-            if luddy
+            if HEURISTIC == "luddy"
             else {"R": (0, -1), "L": (0, 1), "D": (-1, 0), "U": (1, 0)}
         )
 
@@ -273,124 +222,76 @@ class PuzzleBoard:
 
         for direction, move in moves.items():
             # swap 0 and whatever
-            new_board_blocks = copy.deepcopy(self.board_blocks)
+            new_board_blocks = self.board_blocks.copy()
             new_location_of_zero = (
                 location_of_zero[0] + move[0],
                 location_of_zero[1] + move[1],
             )
 
-            if circular:
-                # We're allowing circular
-                if new_location_of_zero[0] < 0:  # on the first row
-                    new_location_of_zero = (
-                        new_location_of_zero[0] + self.height,
-                        new_location_of_zero[1],
-                    )
-                elif new_location_of_zero[1] < 0:
-                    new_location_of_zero = (
-                        new_location_of_zero[0],
-                        new_location_of_zero[1] + self.width,
-                    )
-                elif new_location_of_zero[0] > (self.width - 1):
-                    new_location_of_zero = (
-                        new_location_of_zero[0] - self.height,
-                        new_location_of_zero[1],
-                    )
-                elif new_location_of_zero[1] > (self.height - 1):
-                    new_location_of_zero = (
-                        new_location_of_zero[0],
-                        new_location_of_zero[1] - self.width,
-                    )
+            if HEURISTIC == "circular":
+                # We're allowing circular, move back onto board
+                new_location_of_zero = (
+                    new_location_of_zero[0] % SIZE,
+                    new_location_of_zero[1] % SIZE,
+                )
 
             # skip this state if we've moved off the board
             if (
-                any(
-                    [
-                        new_location_of_zero[0] < 0,
-                        new_location_of_zero[1] < 0,
-                        new_location_of_zero[0] > self.width - 1,
-                        new_location_of_zero[1] > self.height - 1,
-                    ]
-                )
-                and not circular
+                new_location_of_zero[0] < 0
+                or new_location_of_zero[1] < 0
+                or new_location_of_zero[0] > SIZE - 1
+                or new_location_of_zero[1] > SIZE - 1
             ):
-                # print("We're moving outside the bounds of board.")
-                continue
-
-            # skip this state if it's the same as the previous
-            if former and former.board_blocks[0] == new_location_of_zero:
-                # print("this is just the same!")
                 continue
 
             # if not circular:
             swap_location(
-                target=new_board_blocks,
-                new_location_of_zero=new_location_of_zero,
-                original_location_of_zero=location_of_zero,
+                target=new_board_blocks, new_location_of_zero=new_location_of_zero
             )
 
-            neighbor = PuzzleBoard(new_board_blocks)
+            neighbor = PuzzleBoard(new_board_blocks, self.path + direction, self)
             successors.append(neighbor)
 
         return successors
 
+    def invalidate(self):
+        self.valid = False
 
-def solve(
-    initial_board: PuzzleBoard,
-    goal_board: PuzzleBoard,
-    circular: bool = False,
-    luddy: bool = False,
-):
+
+def solve(initial_board: PuzzleBoard, goal_board: PuzzleBoard):
     """
     Function where the magic happens
     :param initial_board: Start instance
     :param goal_board: Goal instance
-    :param circular: flag whether circular configuration requested or not
-    :param luddy: flag whether luddy configuration requested or not
     :return: list of path taken or False if solution not found
     """
     # The dictionary of states already evaluated
     evaluated_states = dict()
 
-    # For each node, which node it can most efficiently be reached from.
-    # If a node can be reached from many start, origin will eventually contain the
-    # most efficient previous step.
-    origin = dict()
-
-    # For each node, the cost of getting from the start node to that node.
-    # sttn: start to that node
-    sttn_score = collections.defaultdict(lambda: float("inf"))
-
-    # The cost of going from start to start is zero.
-    sttn_score[initial_board] = 0
-
     # The heap of currently discovered state that are not evaluated yet.
     # Obviously, only the start state is known initially.
     fringe = [initial_board]
-    heapq.heapify(fringe)
 
-    # For the first node, that value is completely heuristic.
-    stgptn_score[initial_board] = (
-        initial_board.estimate_chess_horse_dist(goal_board)
-        if luddy
-        else initial_board.calculate_manhattan_distance(goal_board)
-    )
+    # Contains only valid fringe states, for fast membership tests
+    fringe_map = {initial_board: initial_board}
 
     # While there are yet nodes to inspect,
     while len(fringe) > 0:
+        current = heapq.heappop(fringe)  # Pop the lowest f-cost state off.
 
-        # Pop the lowest stgptn-score state off.
-        current = heapq.heappop(fringe)
+        if not current.valid:
+            continue  # Skip if invalid
 
+        del fringe_map[current]
         # If we've reached the goal:
         if current == goal_board:
             # return the list of states it took to get there.
             state_path = [current]
             step = current
 
-            while origin.get(step):
-                state_path.append(origin[step])
-                step = origin[step]
+            while step.parent:
+                state_path.append(step.parent)
+                step = step.parent
 
             state_path.reverse()
             return state_path
@@ -399,70 +300,24 @@ def solve(
         evaluated_states[current] = True
 
         # For each possible neighbor of our current state,
-        for neighbor in current.get_successors(
-            origin.get(current), circular=circular, luddy=luddy
-        ):
+        for neighbor in current.get_successors():
             # Skip it if it's already been evaluated
             if neighbor in evaluated_states:
                 continue
 
-            # Add it to our open heap
-            heapq.heappush(fringe, neighbor)
+            if neighbor in fringe_map:
+                # Find matching board state in fringe
+                match = fringe_map[neighbor]
+                if neighbor.g_cost < match.g_cost:
+                    # Found a better path, remove old entry from fringe
+                    match.invalidate()
+                    del fringe_map[neighbor]
 
-            tentative_sttn_score = sttn_score[current] + 1
-
-            # If it takes more to get here than another path to this state, skip it.
-            if tentative_sttn_score >= sttn_score[neighbor]:
-                continue
-
-            # If we got to this point, add it!
-            origin[neighbor] = current
-            sttn_score[neighbor] = tentative_sttn_score
-            stgptn_score[neighbor] = sttn_score[neighbor] + (
-                neighbor.estimate_chess_horse_dist(goal_board)
-                if luddy
-                else neighbor.calculate_manhattan_distance(goal_board)
-            )
-
+            if neighbor not in fringe_map:
+                # Add it to our open heap
+                heapq.heappush(fringe, neighbor)
+                fringe_map[neighbor] = neighbor
     return False
-
-
-def calculate_move(
-    old_coordinate: tuple, new_coordinate: tuple, luddy: bool = False
-) -> str:
-    """
-    Function to determine the move based on older and latest coordinates of zero
-    :param old_coordinate: old coordinates of zero
-    :param new_coordinate: new coordinates of zero
-    :param luddy: a flag
-    :return:
-    """
-    import numpy
-
-    directions_map = (
-        {
-            "A": [(2, 1)],
-            "B": [(2, -1)],
-            "C": [(-2, 1)],
-            "D": [(-2, -1)],
-            "E": [(1, 2)],
-            "F": [(1, -2)],
-            "G": [(-1, 2)],
-            "H": [(-1, -2)],
-        }
-        if luddy
-        else {
-            "L": [(0, -1), (0, 3)],
-            "R": [(0, 1), (0, -3)],
-            "U": [(-1, 0), (3, 0)],
-            "D": [(1, 0), (-3, 0)],
-        }
-    )
-    return [
-        direction
-        for direction, coordinate in directions_map.items()
-        if tuple(numpy.subtract(old_coordinate, new_coordinate)) in coordinate
-    ][0]
 
 
 def is_solvable(puzzle_board: list) -> bool:
@@ -517,20 +372,19 @@ if __name__ == "__main__":
     if sys.argv[2] not in ["original", "circular", "luddy"]:
         raise (Exception("Error: only 'original', 'circular', and 'luddy' allowed"))
 
-    circular = True if sys.argv[2] == "circular" else False
-    luddy = True if sys.argv[2] == "luddy" else False
+    HEURISTIC = sys.argv[2]
 
-    # with open(sys.argv[1], "r") as file:
-    #     start_state = []
-    #     for line in file:
-    #         start_state += [[int(i) for i in line.split()]]
+    with open(sys.argv[1], "r") as file:
+        start_state = []
+        for line in file:
+            start_state += [[int(i) for i in line.split()]]
 
-    start_state = [
-        [1, 2, 3, 4],
-        [5, 0, 6, 7],
-        [9, 10, 11, 8],
-        [13, 14, 15, 12],
-    ]  # board 4
+    # start_state = [
+    #     [1, 2, 3, 4],
+    #     [5, 0, 6, 7],
+    #     [9, 10, 11, 8],
+    #     [13, 14, 15, 12],
+    # ]  # board 4
     # start_state = [
     #     [0, 2, 3, 4],
     #     [1, 5, 6, 7],
@@ -575,8 +429,9 @@ if __name__ == "__main__":
         [13, 14, 15, 0],
     ]  # the requested goal state
 
-    start = PuzzleBoard(start_state)
-    goal = PuzzleBoard(goal_state)
+    goal = PuzzleBoard(goal_state, "", None, True)
+    GOAL_BOARD = goal
+    start = PuzzleBoard(start_state, "", None)
 
     print("Solving...")
 
@@ -586,10 +441,7 @@ if __name__ == "__main__":
     else:
         tick = time.time()
         # the main thing
-        states = solve(start, goal, circular=circular, luddy=luddy)
-
-        initial_position_of_zero = states[0].board_blocks[0]
-        actual_path = list()
+        states = solve(start, goal)
 
         # Found the solution, let's print the original puzzle first
         print("Original Board: \n{0}".format(states[0].to_string()))
@@ -598,14 +450,6 @@ if __name__ == "__main__":
         for state in states[1:]:
             print("\t |\n\t |\n\t |\n\t\\./")
             print(state.to_string())
-            actual_path.append(
-                calculate_move(
-                    old_coordinate=initial_position_of_zero,
-                    new_coordinate=state.board_blocks[0],
-                    luddy=luddy,
-                )
-            )
-            initial_position_of_zero = state.board_blocks[0]
 
-        print("\nTime taken: {0}s".format(round((time.time() - tick) / 60, 4)))
-        print("Path taken: \n{0}".format("".join(actual_path)))
+        print("\nTime taken: {0}s".format(round((time.time() - tick), 4)))
+        print("Path taken: \n{0}".format(states[-1].path))
