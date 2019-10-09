@@ -53,8 +53,14 @@ class City(object):
         EPSILON = 0.1
         coords_list = []
         for seg in self.segments:
-            if not (not seg.to_city.coords or not (
-                    seg.dist < EPSILON * seg.to_city.geo_distance(*seg.to_city.coords, *DEST_COORDS))):
+            if not (
+                not seg.to_city.coords
+                or not (
+                    seg.dist
+                    < EPSILON
+                    * seg.to_city.geo_distance(*seg.to_city.coords, *DEST_COORDS)
+                )
+            ):
                 coords_list.append(seg.to_city.coords)
         if len(coords_list) != 0:
             for c in coords_list:
@@ -208,15 +214,22 @@ def setup():
     global DEST_COORDS, CITIES
 
     if len(sys.argv) != 4:
-        raise (Exception("Error: expected 3 arguments: start city, end city, and cost function"))
+        raise (
+            Exception(
+                "Error: expected 3 arguments: start city, end city, and cost function"
+            )
+        )
 
     if sys.argv[3] not in ["segments", "distance", "time", "mpg"]:
-        raise (Exception("Error: only 'segments', 'distance', 'time', 'mpg' allowed as cost function"))
+        raise (
+            Exception(
+                "Error: only 'segments', 'distance', 'time', 'mpg' allowed as cost function"
+            )
+        )
 
     START_CITY = sys.argv[1]
     DEST_CITY = sys.argv[2]
     HEURISTIC = sys.argv[3]
-
 
     segments = parse_segments("road-segments.txt")
     gps: dict = parse_gps("city-gps.txt")
@@ -245,8 +258,13 @@ def last_line_output(out):
     cities_on_road = [START_CITY]
     for seg in out.segments:
         cities_on_road.append(seg.to_city.name)
-    print(total_segments, total_miles, total_hours, total_gas_gallons, *cities_on_road)
-
+    print(
+        total_segments,
+        int(total_miles),
+        total_hours,
+        total_gas_gallons,
+        *cities_on_road,
+    )
 
 
 if __name__ == "__main__":
