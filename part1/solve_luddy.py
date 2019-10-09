@@ -103,6 +103,8 @@ class PuzzleBoard:
             self.h_cost = (
                 self._estimate_chess_horse_dist(GOAL_BOARD)
                 if HEURISTIC == "luddy"
+                else self._calculate_manhattan_circular(GOAL_BOARD)
+                if HEURISTIC == "circular"
                 else self._calculate_manhattan_distance(GOAL_BOARD)
             )
         self.f_cost = self.g_cost + self.h_cost
@@ -157,34 +159,26 @@ class PuzzleBoard:
         string = "\n".join("\t".join("%i" % x for x in y) for y in array)
         return string
 
+    def _calculate_manhattan_circular(self, other: "PuzzleBoard") -> int:
+        estimate = 0
+        for i in range(1, len(self.board_blocks)):
+            x = abs(self.board_blocks[i][0] - other.board_blocks[i][0])
+            estimate += 4 - x if x > 2 else x
+            y = abs(self.board_blocks[i][1] - other.board_blocks[i][1])
+            estimate += 4 - y if y > 2 else y
+        return estimate
+
     def _calculate_manhattan_distance(self, other: "PuzzleBoard") -> int:
         """
         Our go-to heuristic: manhattan distance
         :param other: the puzzle board instance to calculate manhattan distance from
         :return: the estimated distance
         """
-        estimate = 0
-
-        for index in range(len(self.board_blocks)):
-            estimate += abs(
-                other.board_blocks[index][0] - self.board_blocks[index][0]
-            ) + abs(other.board_blocks[index][1] - self.board_blocks[index][1])
-
-        # Solve linear conflict by adding 2 to the estimate
-        estimate += (
-            2
-            if other.board_blocks[
-                [
-                    key
-                    for key, val in self.board_blocks.items()
-                    if val == other.board_blocks[index]
-                ][0]
-            ]
-            == self.board_blocks[index]
-            else 0
+        return sum(
+            abs(other.board_blocks[i][0] - self.board_blocks[i][0])
+            + abs(other.board_blocks[i][1] - self.board_blocks[i][1])
+            for i in range(1, len(self.board_blocks))
         )
-
-        return estimate
 
     def _estimate_chess_horse_dist(self, other: "PuzzleBoard") -> int:
         """
