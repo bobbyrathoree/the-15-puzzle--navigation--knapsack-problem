@@ -123,7 +123,7 @@ The way that we employ the algorithm is the following. We have a certain stack o
 
 Primary takeaway from Branch and Bound algorithm can that also be implemented in other algorithms:
 
-*If the lower bound is greater than the global upper bound, it doesn’t pay off to look for solutions there!*
+__*If the lower bound is greater than the global upper bound, it doesn’t pay off to look for solutions there!*__
 
 # Reference:
 
