@@ -107,7 +107,7 @@ The Knapsack Problem is a famous Dynamic Programming Problem that falls in the *
 
 It derives its name from a scenario where, given a set of items with specific weights and assigned values, the goal is to maximize the value in a knapsack while remaining within the weight constraint. Each item can only be selected once, as we don’t have multiple quantities of any item.
 
-This problem can be solved by usign either Dynamic Programming or by using a technique called **Branch and Bound** that is discussed below.
+This problem can be solved by using either Dynamic Programming or by using a technique called **Branch and Bound** that is discussed below.
 
 ### 3.2 Branch & Bound
 
@@ -117,11 +117,12 @@ min(f(x)) where x belongs to X.
 
 The set X might be a set of all real numbers, might be a set of integers… Might be also a set containing vectors of real numbers and integers (which is mostly the case with mixed integer programming). f is the cost function here.
 
-The idea of the branch and bound algorithm is simple. It finds the bounds of the cost function f given certain subsets of X. The algorithm relies on the **bounding principle** from optimization, which is just a fancy term used to describe a very intuitive thing. Imagine subsets of the feasible set, S1 and S2. If the upper bound of the solutions from S1 is lower than the lower bound of the solutions in S2, then obviously it is not worth exploring the solutions in S2. This is the whole magic behind the branch and bound algorithm. From this point on, I will denote the upper bound with **UB**, lower bound with **LB** and global upper bound with **GUB** for brevity sake. Now it is time to get our hands dirty and go through a concrete example of the algorithm.
+The idea of the branch and bound algorithm is simple. It finds the bounds of the cost function f given certain subsets of X. The algorithm relies on the **bounding principle** from optimization, which is just a fancy term used to describe a very intuitive thing. Imagine subsets of the feasible set, S1 and S2. If the upper bound of the solutions from S1 is lower than the lower bound of the solutions in S2, then obviously it is not worth exploring the solutions in S2. This is the whole magic behind the branch and bound algorithm. From this point on, I will denote the upper bound with **UB**, lower bound with **LB** and global upper bound with **GUB** for brevity sake.
 
 The way that we employ the algorithm is the following. We have a certain stack of open nodes, let us call it **OPEN**. Open just means that they are not yet fully explored. We also keep track of the global upper bound **GUB**. At each step we take a node from the open set and expand it, we also evaluate it if it is a leaf node. If the node has children, we look at the **LB** and **UB** of the child nodes. If the **LB** of the child node is lower than the **GUB**, then we add it to the **OPEN** stack, if it is higher than the global **UB** then it is not worth exploring. Additionally, if the **UB** of the node if lower than the global **UB** then we update the global **UB** to the **UB** of the node.
 
 Primary takeaway from Branch and Bound algorithm can that also be implemented in other algorithms:
+
 *If the lower bound is greater than the global upper bound, it doesn’t pay off to look for solutions there!*
 
 # Reference:
