@@ -83,7 +83,7 @@ class PuzzleBoard:
         "f_cost",
     )
 
-    def __init__(self, board_blocks, path, parent, isGoal=False):
+    def __init__(self, board_blocks, path, parent, is_goal=False):
         """
         Constructor. Takes a dictionary of integer-tuple pairs that describe block positions.
         Alternatively, takes a 2D list array that is then converted to dict.
@@ -97,7 +97,7 @@ class PuzzleBoard:
         self.path = path
         self.parent = parent
         self.g_cost = len(path)
-        if isGoal:
+        if is_goal:
             self.h_cost = 0
         else:
             self.h_cost = (
@@ -159,18 +159,9 @@ class PuzzleBoard:
         string = "\n".join("\t".join("%i" % x for x in y) for y in array)
         return string
 
-    def _calculate_manhattan_circular(self, other: "PuzzleBoard") -> int:
-        estimate = 0
-        for i in range(1, len(self.board_blocks)):
-            x = abs(self.board_blocks[i][0] - other.board_blocks[i][0])
-            estimate += 4 - x if x > 2 else x
-            y = abs(self.board_blocks[i][1] - other.board_blocks[i][1])
-            estimate += 4 - y if y > 2 else y
-        return estimate
-
     def _calculate_manhattan_distance(self, other: "PuzzleBoard") -> int:
         """
-        Our go-to heuristic: manhattan distance
+        Our go-to heuristic: manhattan distance, taking the sum of absolute differences
         :param other: the puzzle board instance to calculate manhattan distance from
         :return: the estimated distance
         """
@@ -180,8 +171,23 @@ class PuzzleBoard:
             for i in range(1, len(self.board_blocks))
         )
 
+    def _calculate_manhattan_circular(self, other: "PuzzleBoard") -> int:
+        """
+        Regular manhattan distance with adjustments for circular tile movements
+        :param other: Goal PuzzleBoard instance
+        :return: the estimated distance
+        """
+        estimate = 0
+        for i in range(1, len(self.board_blocks)):
+            x = abs(self.board_blocks[i][0] - other.board_blocks[i][0])
+            estimate += 4 - x if x > 2 else x
+            y = abs(self.board_blocks[i][1] - other.board_blocks[i][1])
+            estimate += 4 - y if y > 2 else y
+        return estimate
+
     def _estimate_chess_horse_dist(self, other: "PuzzleBoard") -> int:
         """
+        Function to return sum of L-shaped moves' distances across the PuzzleBoard
         :param other:
         :return: estimated distance
         """

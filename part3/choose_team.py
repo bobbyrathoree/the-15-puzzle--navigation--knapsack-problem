@@ -2,7 +2,7 @@
 #
 # choose_team.py : Choose a team of maximum skill under a fixed budget
 #
-# Code by: Bobby Rathore (brathore), James Mochizuki-Freeman (jmochizu), Dan Li (dli1
+# Code by: Bobby Rathore (brathore), James Mochizuki-Freeman (jmochizu), Dan Li (dli1)
 #
 # Based on skeleton code by D. Crandall, September 2019
 #
@@ -41,9 +41,13 @@ def load_people(filename):
         return [Person(*line.split()) for line in file]
 
 
-def bound(state):
-    """Returns a skill value that is guaranteed to not be less than that of any
-    combination of people within the budget"""
+def bound(state: State) -> float:
+    """
+    Returns a skill value that is guaranteed to not be less than that of any
+    combination of people within the budget
+    :param state: state object
+    :return:
+    """
     skill = state.fixed_skill
     rem_budget = BUDGET - state.fixed_cost
     for person in sorted(state.variable, reverse=True):
@@ -56,8 +60,12 @@ def bound(state):
     return skill
 
 
-def branch(state):
-    """Returns two (people, budget) pairs that subdivide the space in two"""
+def branch(state: State) -> (State, State):
+    """
+    Returns two (people, budget) pairs that subdivide the space in two
+    :param state:
+    :return:
+    """
     people = list(state.variable)
     if len(people) == 0:
         return None, None
@@ -69,7 +77,12 @@ def branch(state):
     return s1, s2
 
 
-def solve(people):
+def solve(people: list) -> tuple:
+    """
+    Start of b&b with popping best fixed skill on each fringe iteration
+    :param people:
+    :return:
+    """
     initial_state = State((), people)
     fringe = [initial_state]
     best = initial_state
@@ -87,7 +100,10 @@ def solve(people):
     return best.fixed
 
 
-def main():
+def main() -> None:
+    """
+    The main function to input the budget and solve for it.
+    """
     global BUDGET
     if len(sys.argv) != 3:
         raise Exception("Error: expected 2 command line arguments")

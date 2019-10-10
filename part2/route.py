@@ -1,6 +1,5 @@
 #!/usr/local/bin/python3
 
-# from queue import PriorityQueue
 from heapq import heappush, heappop
 from math import floor, radians, sin, cos, acos
 import sys
@@ -210,6 +209,11 @@ def solve(initial_city):
 
 
 def setup():
+    """
+    Function to set up start city, destination city, and the heuristic that is to be used
+    in this runtime. Followed by destination coordinates, speed limits and the maximum allowed
+    distance between segments.
+    """
     global MAX_DISTANCE, MAX_SPEEDLIMIT, MIN_SPEEDLIMIT, START_CITY, DEST_CITY, HEURISTIC
     global DEST_COORDS, CITIES
 
@@ -237,8 +241,6 @@ def setup():
     MAX_SPEEDLIMIT = max(seg.speed for segs in segments.values() for seg in segs)
     MIN_SPEEDLIMIT = min(seg.speed for segs in segments.values() for seg in segs)
 
-    # DEST_CITY = "Ada,_Minnesota"
-    # HEURISTIC = "mpg"
     DEST_COORDS = gps[DEST_CITY]
 
     CITIES = {
@@ -250,13 +252,13 @@ def setup():
             seg.to_city = CITIES[seg.to_city]
 
 
-def last_line_output(out):
-    total_segments = len(out.segments)
-    total_miles = sum(s.dist for s in out.segments)
-    total_hours = sum(s.dist / s.speed for s in out.segments)
-    total_gas_gallons = sum(s.dist / s.mpg for s in out.segments)
+def last_line_output(solution):
+    total_segments = len(solution.segments)
+    total_miles = sum(s.dist for s in solution.segments)
+    total_hours = sum(s.dist / s.speed for s in solution.segments)
+    total_gas_gallons = sum(s.dist / s.mpg for s in solution.segments)
     cities_on_road = [START_CITY]
-    for seg in out.segments:
+    for seg in solution.segments:
         cities_on_road.append(seg.to_city.name)
     print(
         total_segments,
@@ -269,10 +271,10 @@ def last_line_output(out):
 
 if __name__ == "__main__":
     setup()
-    out = solve(CITIES[START_CITY])
-    print(out)
-    print("total segments", len(out.segments))
-    print("total distance:", sum(s.dist for s in out.segments))
-    print("total time (hours):", sum(s.dist / s.speed for s in out.segments))
-    print("total gas (gallons):", sum(s.dist / s.mpg for s in out.segments))
-    last_line_output(out)
+    result = solve(CITIES[START_CITY])
+    print(result)
+    print("total segments", len(result.segments))
+    print("total distance:", sum(s.dist for s in result.segments))
+    print("total time (hours):", sum(s.dist / s.speed for s in result.segments))
+    print("total gas (gallons):", sum(s.dist / s.mpg for s in result.segments))
+    last_line_output(solution=result)
