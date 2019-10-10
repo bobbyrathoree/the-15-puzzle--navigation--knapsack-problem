@@ -7,6 +7,7 @@
 # Based on skeleton code by D. Crandall, September 2019
 #
 import sys
+from typing import List
 
 BUDGET = None
 
@@ -60,21 +61,24 @@ def bound(state: State) -> float:
     return skill
 
 
-def branch(state: State) -> (State, State):
+def branch(state: State) -> List[State]:
     """
-    Returns two (people, budget) pairs that subdivide the space in two
+    Returns up to two states that subdivide the space in two
     :param state:
     :return:
     """
     people = list(state.variable)
     if len(people) == 0:
-        return None, None
+        return []
     person = people.pop()
+    out = []
     s1 = State(state.fixed, people)
-    s1 = s1 if s1.fixed_cost < BUDGET else None
     s2 = State(state.fixed + (person,), people)
-    s2 = s2 if s2.fixed_cost <= BUDGET else None
-    return s1, s2
+    if s1.fixed_cost <= BUDGET:
+        out.append(s1)
+    if s2.fixed_cost <= BUDGET:
+        out.append(s2)
+    return out
 
 
 def solve(people: list) -> tuple:
@@ -90,13 +94,10 @@ def solve(people: list) -> tuple:
         state = fringe.pop()
         if state.fixed_skill > best.fixed_skill:
             best = state
-        s1, s2 = branch(state)
-        if s1:
-            if bound(s1) > best.fixed_skill:
-                fringe.append(s1)
-        if s2:
-            if bound(s2) > best.fixed_skill:
-                fringe.append(s2)
+        succs = branch(state)
+        for s in succs:
+            if bound(s) > best.fixed_skill:
+                fringe.append(s)
     return best.fixed
 
 
@@ -111,13 +112,20 @@ def main() -> None:
     BUDGET = float(sys.argv[2])
     people = load_people(sys.argv[1])
     solution = solve(people)
-    print(
-        "Found a group with %d people costing %f with total skill %f"
-        % (len(solution), sum(p.cost for p in solution), sum(p.skill for p in solution))
-    )
 
-    for s in solution:
-        print("%s %f" % (s.name, float(1)))
+    if len(solution) == 0:
+        print("Inf")
+    else:
+        print(
+            "Found a group with %d people costing %f with total skill %f"
+            % (
+                len(solution),
+                sum(p.cost for p in solution),
+                sum(p.skill for p in solution),
+            )
+        )
+        for s in solution:
+            print("%s %f" % (s.name, float(1)))
 
 
 if __name__ == "__main__":
