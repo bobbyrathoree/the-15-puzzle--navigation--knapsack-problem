@@ -166,12 +166,12 @@ Taking all the above points into consideration, we decided to take the linear-co
 ### 2. PART - 2 The navigation problem
 #### 2.1 Heuristics
 There are four choices for the "best" route and each has a different heuristic:
-* Segments: we take the geographical distance (converted from GPS coordinates from current city to goal city) and devide it by the Maximun of the segment distance (which we search and obtain in the main function as a global variable) and use the floor of this number as an estimation of how many road segments there will be from the current city to the goal city. 
-* Distance: we simply take the geographical distance as an estimation
-* Time: We take the geographical distance and divide it by the Maximum of the speed limit. 
-* MPG: we take the geographical distance and devide it by 35 (which is approaching maximum of the mpg-speed function)
+* Segments: we take the geographical distance (converted from GPS coordinates from current city to goal city) and divide it by the length of the longest segment (which we search and obtain in the main function as a global variable). We use the floor of this number as an estimation of how many road segments there will be from the current city to the goal city. 
+* Distance: we simply take the geographical distance as an estimation.
+* Time: We take the geographical distance and divide it by the maximum speed limit. 
+* MPG: we take the geographical distance and divide it by 35 (which is approaching maximum of the mpg-speed function)
 
-Simply  put, all these heuristics are based on the estimation of geographical distance converted from coordinates. If the GPS coordinates are accurate, this heuristic will not over-estimate and thus is admissible. However, an issue here is there are some cities without coordinates. Thus, the accuracy of our estimation of coordinates will influence whether the heuristic is admissible and whether it's consistent.
+Simply put, all these heuristics are based on the estimation of geographical distance converted from coordinates. If the GPS coordinates are accurate, this heuristic will not over-estimate and thus is admissible. However, an issue here is there are some cities without coordinates. Thus, the accuracy of our estimation of coordinates will influence whether the heuristic is admissible and whether it's consistent.
 #### 2.2 Coordinates estimation
 An intuitive idea is that the coordinates can be estimated by getting the mean of the neighboring cities' coordinates. However, this might not be optimal because if the estimated city is very close to the goal, and this coordinates-estimation strategy will be worse than simply searching all its neighbors. 
 
@@ -232,11 +232,13 @@ This famous algorithm is the driving force behind mixed integer programmming. Fo
 
 min(f(x)) where x belongs to X.
 
-The set X might be a set of all real numbers, might be a set of integers… Might be also a set containing vectors of real numbers and integers (which is mostly the case with mixed integer programming). f is the cost function here.
+The set X might be a set of all real numbers, or might be a set of integers… Or it might be also a set containing vectors of real numbers and integers (which is mostly the case with mixed integer programming). f is the cost function here.
 
 The idea of the branch and bound algorithm is simple. It finds the bounds of the cost function f given certain subsets of X. The algorithm relies on the **bounding principle** from optimization, which is just a fancy term used to describe a very intuitive thing. Imagine subsets of the feasible set, S1 and S2. If the upper bound of the solutions from S1 is lower than the lower bound of the solutions in S2, then obviously it is not worth exploring the solutions in S2. This is the whole magic behind the branch and bound algorithm. From this point on, I will denote the upper bound with **UB**, lower bound with **LB** and global upper bound with **GUB** for brevity sake.
 
-The way that we employ the algorithm is the following. We have a certain stack of open nodes, let us call it **OPEN**. Open just means that they are not yet fully explored. We also keep track of the global upper bound **GUB**. At each step we take a node from the open set and expand it, we also evaluate it if it is a leaf node. If the node has children, we look at the **LB** and **UB** of the child nodes. If the **LB** of the child node is lower than the **GUB**, then we add it to the **OPEN** stack, if it is higher than the global **UB** then it is not worth exploring. Additionally, if the **UB** of the node if lower than the global **UB** then we update the global **UB** to the **UB** of the node.
+The way that we employ the algorithm is the following. We have a certain stack of open nodes, let us call it **OPEN**. Open just means that they are not yet fully explored. We also keep track of the global upper bound **GUB**. At each step we take a node from the open set and expand it, we also evaluate its value. If the value of the node is higher than the **GUB** then we update the **GUB** to be the value of the node.
+
+Af that, we attempt to branch the node into two children. If the node has children, we look at the **UB** of the child nodes. If the **UB** of the child node is higher than the **GUB**, then we add it to the **OPEN** stack, otherwise we discard it as not worth exploring.
 
 Primary takeaway from Branch and Bound algorithm can that also be implemented in other algorithms:
 
