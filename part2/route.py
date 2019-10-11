@@ -84,7 +84,7 @@ class City(object):
         elif HEURISTIC == "mpg":
             return self.geo_distance(*self.coords, *DEST_COORDS) / MAX_MPG
 
-    def __repr__(self) -> object:
+    def __repr__(self) -> str:
         return (
             f"{self.name} {self.coords} \n"
             f"segments: {list(s.to_city.name for s in self.segments)}\n"
@@ -181,29 +181,11 @@ def solve(initial_city):
     print("solving")
     fringe = []
     heappush(fringe, State(initial_city, Route([])))
-    closed = set()
     while len(fringe) > 0:
         state = heappop(fringe)
-        # if not state.city:
-        #    continue
-        closed.add(state.city)
         if is_goal(state):
             return state.route
         for succ in successors(state):
-            if succ.city in closed:
-                continue
-            # match = next((s for s in fringe if s.city == succ.city), None)
-            # if not match:
-            #    heappush(fringe, succ)
-            #    continue
-            # if match.route.g_cost <= succ.route.g_cost:
-            #    continue
-            # invalidate a heapq item instead of removing it, per
-            # https://docs.python.org/3.6/library/heapq.html
-            # match.invalidate()
-            if not succ.city.coords:
-                succ.city._calc_fake_coords()
-                # print("CITIES WITHOUT COORDS:",succ.city, succ.city.coords)
             heappush(fringe, succ)
     return False
 
@@ -250,6 +232,11 @@ def setup():
         for seg in segs:
             seg.from_city = CITIES[seg.from_city]
             seg.to_city = CITIES[seg.to_city]
+
+    for city in CITIES.values():
+        if not city.coords:
+            city._calc_fake_coords()
+            # print("CITIES WITHOUT COORDS:", city, city.coords)
 
 
 def last_line_output(solution):
